@@ -1,0 +1,20 @@
+meta {
+  name: 6 - QR Code du colis
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/v1/colis/{{colisId}}/qrcode
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+  Accept: image/png
+}
+
+settings {
+  encodeUrl: true
+}

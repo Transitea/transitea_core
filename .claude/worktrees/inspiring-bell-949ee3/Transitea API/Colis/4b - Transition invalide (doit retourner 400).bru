@@ -1,0 +1,27 @@
+meta {
+  name: 4b - Transition invalide (doit retourner 400)
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/v1/colis/{{colisId}}/statut
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "statut": "LIVRE",
+    "commentaire": "Tentative de transition invalide"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

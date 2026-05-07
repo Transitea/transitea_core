@@ -1,0 +1,44 @@
+meta {
+  name: 1 - Creer un colis
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/colis
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "expediteurNom": "Kabila Marcel",
+    "expediteurTelephone": "+243900000002",
+    "expediteurEmail": "marcel@exemple.cd",
+    "destinataireNom": "Mutombo Pierre",
+    "destinataireTelephone": "+243900000003",
+    "destinataireEmail": "pierre@exemple.cd",
+    "destinataireAdresse": "Avenue Kasa-Vubu, N°12",
+    "destinataireVille": "Lubumbashi",
+    "description": "Vetements et electronique",
+    "poids": 3.500
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    var json = res.getBody();
+    bru.setVar('colisId', json.id);
+    bru.setVar('codeTracking', json.codeTracking);
+    console.log('colisId capture : ' + json.id + ' | code : ' + json.codeTracking);
+  }
+}
+
+settings {
+  encodeUrl: true
+}

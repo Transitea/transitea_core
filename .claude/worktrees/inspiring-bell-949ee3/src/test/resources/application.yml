@@ -1,0 +1,45 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:transitea_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+
+  mail:
+    host: localhost
+    port: 25
+    test-connection: false
+
+  quartz:
+    auto-startup: false
+
+application:
+  jwt:
+    secret-access: dGVzdC1zZWNyZXQtYWNjZXNzLWtleS1mb3ItdW5pdC10ZXN0cy1taW5pbXVtLTI1NmJpdHM=
+    secret-refresh: dGVzdC1zZWNyZXQtcmVmcmVzaC1rZXktZm9yLXVuaXQtdGVzdHMtbWluaW11bS0yNTZiaXRz
+    expiration-access-ms: 3600000
+    expiration-refresh-ms: 604800000
+
+  whatsapp:
+    token: ""
+    phone-number-id: ""
+    api-url: https://graph.facebook.com/v18.0
+
+  qrcode:
+    cache-repertoire: ./target/test-cache/qrcodes
+    cache-duree-jours: 90
+
+logging:
+  level:
+    com.transitea: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN

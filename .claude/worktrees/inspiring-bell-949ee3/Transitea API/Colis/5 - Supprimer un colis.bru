@@ -1,0 +1,19 @@
+meta {
+  name: 5 - Supprimer un colis
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/v1/colis/{{colisId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,15 @@
+meta {
+  name: 1 - Suivi public d'un colis
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/tracking/{{codeTracking}}
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+}

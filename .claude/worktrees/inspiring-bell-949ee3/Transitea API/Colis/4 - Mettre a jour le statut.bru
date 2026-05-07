@@ -1,0 +1,28 @@
+meta {
+  name: 4 - Mettre a jour le statut
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/v1/colis/{{colisId}}/statut
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "statut": "PRIS_EN_CHARGE",
+    "localisation": "Depot Kinshasa Nord",
+    "commentaire": "Colis recupere chez l'expediteur"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Erreur - Email deja utilise
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/register
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nom": "Dupont",
+    "prenom": "Jean",
+    "email": "louange@transitea.cd",
+    "motDePasse": "motdepasse123"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

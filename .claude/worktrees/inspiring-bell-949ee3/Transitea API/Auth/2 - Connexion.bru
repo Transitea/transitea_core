@@ -1,0 +1,35 @@
+meta {
+  name: 2 - Connexion
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "louange@transitea.cd",
+    "motDePasse": "motdepasse123"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    var json = res.getBody();
+    bru.setVar('accessToken', json.accessToken);
+    bru.setVar('refreshToken', json.refreshToken);
+    console.log('Tokens captures depuis connexion');
+  }
+}
+
+settings {
+  encodeUrl: true
+}
