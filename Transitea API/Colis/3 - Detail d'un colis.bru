@@ -1,0 +1,19 @@
+meta {
+  name: 3 - Detail d'un colis
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v1/colis/{{colisId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Erreur - Validation champs manquants
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/v1/colis
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "expediteurNom": "",
+    "poids": -1
+  }
+}
+
+settings {
+  encodeUrl: true
+}

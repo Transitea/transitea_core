@@ -1,0 +1,25 @@
+meta {
+  name: 2b - Lister par statut
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/colis?statut=ENREGISTRE&page=0&taille=20
+  body: none
+  auth: inherit
+}
+
+params:query {
+  statut: ENREGISTRE
+  page: 0
+  taille: 20
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+settings {
+  encodeUrl: true
+}

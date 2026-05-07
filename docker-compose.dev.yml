@@ -1,0 +1,30 @@
+# Compose pour le developpement local
+# Lance uniquement PostgreSQL - l application tourne depuis l IDE
+#
+# Usage :
+#   docker-compose -f docker-compose.dev.yml up -d
+#   docker-compose -f docker-compose.dev.yml down
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: transitea-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: transitea_db
+      POSTGRES_USER: transitea
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-transitea}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transitea -d transitea_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_dev_data:
+    driver: local

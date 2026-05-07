@@ -1,0 +1,19 @@
+meta {
+  name: 3 - Profil (moi)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/auth/me
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+settings {
+  encodeUrl: true
+}

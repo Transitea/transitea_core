@@ -1,0 +1,26 @@
+meta {
+  name: Erreur - Mauvais mot de passe
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "louange@transitea.cd",
+    "motDePasse": "mauvaismdp"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,309 @@
+{
+  "info": {
+    "name": "Transitea API",
+    "_postman_id": "transitea-api-v1",
+    "description": "Collection de tests pour l'API Transitea MVP",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",       "value": "http://localhost:8080", "type": "string" },
+    { "key": "accessToken",   "value": "",                      "type": "string" },
+    { "key": "refreshToken",  "value": "",                      "type": "string" },
+    { "key": "colisId",       "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Sante",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator", "health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "1 - Inscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "  console.log('Tokens captures depuis inscription');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Lumbu\",\n  \"prenom\": \"Louange\",\n  \"email\": \"louange@transitea.cd\",\n  \"telephone\": \"+243900000001\",\n  \"motDePasse\": \"motdepasse123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["v1", "auth", "register"] }
+          }
+        },
+        {
+          "name": "2 - Connexion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "  console.log('Tokens captures depuis connexion');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"louange@transitea.cd\",\n  \"motDePasse\": \"motdepasse123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "3 - Profil (moi)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["v1", "auth", "me"] }
+          }
+        },
+        {
+          "name": "4 - Rafraichir tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "  console.log('Nouveaux tokens captures');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["v1", "auth", "refresh"] }
+          }
+        },
+        {
+          "name": "5 - Deconnexion",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["v1", "auth", "logout"] }
+          }
+        },
+        {
+          "name": "Erreur - Email deja utilise",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Dupont\",\n  \"prenom\": \"Jean\",\n  \"email\": \"louange@transitea.cd\",\n  \"motDePasse\": \"motdepasse123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["v1", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Erreur - Mauvais mot de passe",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"louange@transitea.cd\",\n  \"motDePasse\": \"mauvaismdp\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Erreur - Sans token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["v1", "auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Colis",
+      "item": [
+        {
+          "name": "1 - Creer un colis",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set('colisId', json.id);",
+                  "  console.log('colisId capture : ' + json.id + ' | code : ' + json.codeTracking);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expediteurNom\": \"Kabila Marcel\",\n  \"expediteurTelephone\": \"+243900000002\",\n  \"expediteurEmail\": \"marcel@exemple.cd\",\n  \"destinataireNom\": \"Mutombo Pierre\",\n  \"destinataireTelephone\": \"+243900000003\",\n  \"destinataireEmail\": \"pierre@exemple.cd\",\n  \"destinataireAdresse\": \"Avenue Kasa-Vubu, N°12\",\n  \"destinataireVille\": \"Lubumbashi\",\n  \"description\": \"Vetements et electronique\",\n  \"poids\": 3.500\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/colis", "host": ["{{baseUrl}}"], "path": ["v1", "colis"] }
+          }
+        },
+        {
+          "name": "2 - Lister mes colis",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/v1/colis?page=0&taille=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "colis"],
+              "query": [
+                { "key": "page",   "value": "0" },
+                { "key": "taille", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2b - Lister par statut",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/v1/colis?statut=ENREGISTRE&page=0&taille=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "colis"],
+              "query": [
+                { "key": "statut", "value": "ENREGISTRE" },
+                { "key": "page",   "value": "0" },
+                { "key": "taille", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3 - Detail d'un colis",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/v1/colis/{{colisId}}", "host": ["{{baseUrl}}"], "path": ["v1", "colis", "{{colisId}}"] }
+          }
+        },
+        {
+          "name": "4 - Mettre a jour le statut",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statut\": \"PRIS_EN_CHARGE\",\n  \"localisation\": \"Depot Kinshasa Nord\",\n  \"commentaire\": \"Colis recupere chez l'expediteur\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/colis/{{colisId}}/statut", "host": ["{{baseUrl}}"], "path": ["v1", "colis", "{{colisId}}", "statut"] }
+          }
+        },
+        {
+          "name": "4b - Transition invalide (doit retourner 400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statut\": \"LIVRE\",\n  \"commentaire\": \"Tentative de transition invalide\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/colis/{{colisId}}/statut", "host": ["{{baseUrl}}"], "path": ["v1", "colis", "{{colisId}}", "statut"] }
+          }
+        },
+        {
+          "name": "5 - Supprimer un colis",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/v1/colis/{{colisId}}", "host": ["{{baseUrl}}"], "path": ["v1", "colis", "{{colisId}}"] }
+          }
+        },
+        {
+          "name": "Erreur - Validation champs manquants",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expediteurNom\": \"\",\n  \"poids\": -1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/v1/colis", "host": ["{{baseUrl}}"], "path": ["v1", "colis"] }
+          }
+        }
+      ]
+    }
+  ]
+}

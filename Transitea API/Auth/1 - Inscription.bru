@@ -1,0 +1,38 @@
+meta {
+  name: 1 - Inscription
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/register
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nom": "Lumbu",
+    "prenom": "Louange",
+    "email": "louange@transitea.cd",
+    "telephone": "+243900000001",
+    "motDePasse": "motdepasse123"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    var json = res.getBody();
+    bru.setVar('accessToken', json.accessToken);
+    bru.setVar('refreshToken', json.refreshToken);
+    console.log('Tokens captures depuis inscription');
+  }
+}
+
+settings {
+  encodeUrl: true
+}

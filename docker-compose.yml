@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: transitea-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: transitea_db
+      POSTGRES_USER: transitea
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-transitea}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transitea -d transitea_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: transitea-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: transitea_db
+      DB_USERNAME: transitea
+      DB_PASSWORD: ${DB_PASSWORD:-transitea}
+      JWT_SECRET_ACCESS: ${JWT_SECRET_ACCESS}
+      JWT_SECRET_REFRESH: ${JWT_SECRET_REFRESH}
+      GMAIL_USERNAME: ${GMAIL_USERNAME:-}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      JPA_DDL_AUTO: update
+      JPA_SHOW_SQL: "false"
+      LOG_LEVEL: INFO
+    ports:
+      - "8080:8080"
+    volumes:
+      - qrcode_cache:/var/transitea/cache/qrcodes
+
+volumes:
+  postgres_data:
+    driver: local
+  qrcode_cache:
+    driver: local

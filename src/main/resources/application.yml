@@ -1,0 +1,143 @@
+spring:
+  application:
+    name: transitea
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:transitea_db}
+    username: ${DB_USERNAME:transitea}
+    password: ${DB_PASSWORD:transitea}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: transitea-pool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: ${JPA_SHOW_SQL:false}
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_USERNAME:}
+    password: ${GMAIL_APP_PASSWORD:}
+    test-connection: false
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  quartz:
+    job-store-type: memory
+    scheduler-name: transitea-scheduler
+    auto-startup: true
+    properties:
+      org:
+        quartz:
+          threadPool:
+            threadCount: 5
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    time-zone: Africa/Kinshasa
+
+server:
+  port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+    mime-types: application/json
+  error:
+    include-message: never
+    include-binding-errors: never
+
+# --- Configuration personnalisee Transitea ---
+application:
+
+  jwt:
+    secret-access: ${JWT_SECRET_ACCESS:dev-secret-access-key-remplacer-en-production-min-256bits}
+    secret-refresh: ${JWT_SECRET_REFRESH:dev-secret-refresh-key-remplacer-en-production-min-256bits}
+    expiration-access-ms: 3600000
+    expiration-refresh-ms: 604800000
+
+  qrcode:
+    cache-repertoire: ${QRCODE_CACHE_PATH:./cache/qrcodes}
+    cache-duree-jours: 90
+
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+
+  whatsapp:
+    token: ${WHATSAPP_TOKEN:}
+    phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+    api-url: https://graph.facebook.com/v18.0
+
+management:
+  health:
+    mail:
+      enabled: ${MAIL_HEALTH_ENABLED:false}
+
+logging:
+  level:
+    com.transitea: ${LOG_LEVEL:INFO}
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    com.zaxxer.hikari: WARN
+
+---
+# Profil dev : active avec spring.profiles.active=dev
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.transitea: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+---
+# Profil prod : active avec spring.profiles.active=prod
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+logging:
+  level:
+    com.transitea: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN

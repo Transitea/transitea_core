@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transitea MVP — Maquettes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0F1117;--bg2:#161B24;--bg3:#1E2535;--bg4:#252D3E;
+  --border:#2A3347;--border2:#374059;
+  --text:#E8EDF5;--text2:#8A95AA;--text3:#5A6478;
+  --accent:#3B82F6;--accent2:#1D4ED8;--accent-glow:rgba(59,130,246,0.15);
+  --green:#10B981;--green-bg:rgba(16,185,129,0.1);
+  --orange:#F59E0B;--orange-bg:rgba(245,158,11,0.1);
+  --red:#EF4444;--red-bg:rgba(239,68,68,0.1);
+  --purple:#8B5CF6;--purple-bg:rgba(139,92,246,0.1);
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r:8px;--r2:12px;--r3:16px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-text{font-size:17px;font-weight:600;letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.sync-pill{margin:12px 16px;padding:8px 12px;border-radius:var(--r);display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;transition:all .2s}
+.sync-pill.online{background:var(--green-bg);border:1px solid rgba(16,185,129,0.2);color:var(--green)}
+.sync-pill.offline{background:var(--orange-bg);border:1px solid rgba(245,158,11,0.2);color:var(--orange)}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sync-pill.online .sync-dot{background:var(--green);box-shadow:0 0 6px var(--green)}
+.sync-pill.offline .sync-dot{background:var(--orange);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.nav{flex:1;padding:8px}
+.nav-section{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;padding:12px 8px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r);font-size:13.5px;color:var(--text2);cursor:pointer;transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--accent-glow);color:var(--accent);border-color:rgba(59,130,246,0.2)}
+.nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border)}
+.user-info{display:flex;align-items:center;gap:10px}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.user-name{font-size:13px;font-weight:500}
+.user-role{font-size:11px;color:var(--text3)}
+.topbar{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
+.page-title{font-size:17px;font-weight:600;letter-spacing:-0.3px}
+.page-sub{font-size:12px;color:var(--text3);margin-top:1px}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+.btn{padding:8px 14px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+.screen{display:none;animation:fadeIn .2s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px}
+.card-title{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.blue::before{background:var(--accent)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.orange::before{background:var(--orange)}
+.stat-card.purple::before{background:var(--purple)}
+.stat-num{font-size:28px;font-weight:600;letter-spacing:-1px;margin-bottom:2px;font-family:var(--mono)}
+.stat-label{font-size:12px;color:var(--text3)}
+.stat-delta{font-size:11px;font-weight:500;margin-top:6px}
+.stat-delta.up{color:var(--green)}
+.stat-delta.down{color:var(--red)}
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.table-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:7px 12px;flex:1;max-width:300px}
+.search-box input{background:none;border:none;outline:none;font-family:var(--font);font-size:13px;color:var(--text);width:100%}
+.search-box input::placeholder{color:var(--text3)}
+.filter-row{display:flex;gap:8px}
+.filter-btn{padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text3);font-family:var(--font);transition:all .15s}
+.filter-btn.active{background:var(--accent-glow);border-color:rgba(59,130,246,0.3);color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.code{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
+.status-pill.enregistre{background:rgba(139,92,246,.12);color:var(--purple)}
+.status-pill.transit{background:rgba(59,130,246,.12);color:var(--accent)}
+.status-pill.livraison{background:rgba(245,158,11,.12);color:var(--orange)}
+.status-pill.livre{background:rgba(16,185,129,.12);color:var(--green)}
+.status-pill.refuse{background:rgba(239,68,68,.12);color:var(--red)}
+.s-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:span 2}
+label{font-size:12px;font-weight:500;color:var(--text2)}
+.form-input{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;font-family:var(--font);font-size:13px;color:var(--text);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--text3)}
+select.form-input option{background:var(--bg3)}
+.form-section{margin-bottom:20px}
+.form-section-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.form-section-title span{background:var(--accent);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.tracking-hero{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:24px;margin-bottom:20px;text-align:center}
+.tracking-code{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--accent);letter-spacing:2px;margin:8px 0}
+.tracking-status{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:600;margin-top:8px;background:var(--orange-bg);color:var(--orange);border:1px solid rgba(245,158,11,.2)}
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:16px;padding:14px 0;position:relative}
+.tl-item:not(:last-child)::after{content:'';position:absolute;left:11px;top:36px;bottom:-14px;width:1px;background:var(--border)}
+.tl-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px}
+.tl-dot.done{background:var(--green);color:#fff}
+.tl-dot.active{background:var(--orange);color:#fff;box-shadow:0 0 10px rgba(245,158,11,.4)}
+.tl-dot.pending{background:var(--bg3);border:1px solid var(--border2);color:var(--text3)}
+.tl-title{font-size:13.5px;font-weight:500}
+.tl-meta{font-size:12px;color:var(--text3);margin-top:2px}
+.tl-loc{font-size:11px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;font-family:var(--mono)}
+.sync-hero{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:var(--r3);padding:28px;text-align:center;margin-bottom:20px}
+.sync-status-big{font-size:40px;margin-bottom:8px}
+.sync-label{font-size:18px;font-weight:600;margin-bottom:4px}
+.sync-info{font-size:13px;color:var(--text3)}
+.progress-bar{background:var(--bg3);border-radius:4px;height:6px;margin:16px 0 8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .5s ease}
+.sync-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.sync-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;text-align:center}
+.sync-stat-num{font-family:var(--mono);font-size:22px;font-weight:500}
+.sync-stat-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.sync-log{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.log-line{padding:8px 14px;font-family:var(--mono);font-size:12px;border-bottom:1px solid var(--border);display:flex;gap:10px}
+.log-line:last-child{border-bottom:none}
+.log-time{color:var(--text3);flex-shrink:0}
+.log-ok{color:var(--green)}
+.log-warn{color:var(--orange)}
+.log-err{color:var(--red)}
+.log-info{color:var(--accent)}
+.offline-banner{background:var(--orange-bg);border:1px solid rgba(245,158,11,.25);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--orange);display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.pending-badge{background:var(--orange-bg);border:1px solid rgba(245,158,11,.2);color:var(--orange);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">📦</div>
+        <div>
+          <div class="logo-text">Transitea</div>
+          <div class="logo-sub">MVP · RDC</div>
+        </div>
+      </div>
+    </div>
+    <div class="sync-pill online" id="syncPill" onclick="navigate('sync')">
+      <div class="sync-dot"></div>
+      <span id="syncText">Synchronisé · 14:32</span>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" data-screen="dashboard" onclick="navigate('dashboard')">
+        <div class="nav-icon">▦</div> Dashboard
+      </div>
+      <div class="nav-item" data-screen="colis" onclick="navigate('colis')">
+        <div class="nav-icon">◫</div> Mes colis
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item" data-screen="nouveau" onclick="navigate('nouveau')">
+        <div class="nav-icon">＋</div> Nouveau colis
+      </div>
+      <div class="nav-section">Outils</div>
+      <div class="nav-item" data-screen="tracking" onclick="navigate('tracking')">
+        <div class="nav-icon">◎</div> Suivi public
+      </div>
+      <div class="nav-item" data-screen="sync" onclick="navigate('sync')">
+        <div class="nav-icon">⟳</div> Synchronisation
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar">JM</div>
+        <div>
+          <div class="user-name">Jean Mutombo</div>
+          <div class="user-role">Transporteur</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+        <div class="page-sub" id="pageSub">Dimanche 15 mars 2026 · Kinshasa</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="toggleOffline()">⚡ Simuler offline</button>
+        <button class="btn btn-primary btn-sm" onclick="navigate('nouveau')">＋ Nouveau colis</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="screen active" id="screen-dashboard">
+        <div class="stats-row">
+          <div class="stat-card blue"><div class="stat-num">48</div><div class="stat-label">Colis aujourd'hui</div><div class="stat-delta up">↑ +12 vs hier</div></div>
+          <div class="stat-card green"><div class="stat-num">31</div><div class="stat-label">Livrés</div><div class="stat-delta up">64.6% taux livraison</div></div>
+          <div class="stat-card orange"><div class="stat-num">14</div><div class="stat-label">En transit</div><div class="stat-delta">3 depuis +48h</div></div>
+          <div class="stat-card purple"><div class="stat-num">3</div><div class="stat-label">En attente sync</div><div class="stat-delta down">⚠ Non synchronisés</div></div>
+        </div>
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-title">Activité 7 jours</div>
+            <div style="display:flex;align-items:flex-end;gap:6px;height:60px">
+              <div style="flex:1;background:var(--bg3);border-radius:3px 3px 0 0;height:63%"></div>
+              <div style="flex:1;background:var(--bg3);border-radius:3px 3px 0 0;height:88%"></div>
+              <div style="flex:1;background:var(--bg3);border-radius:3px 3px 0 0;height:55%"></div>
+              <div style="flex:1;background:var(--bg3);border-radius:3px 3px 0 0;height:100%"></div>
+              <div style="flex:1;background:var(--bg3);border-radius:3px 3px 0 0;height:84%"></div>
+              <div style="flex:1;background:var(--bg3);border-radius:3px 3px 0 0;height:94%"></div>
+              <div style="flex:1;background:var(--accent);border-radius:3px 3px 0 0;height:94%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--text3)">
+              <span>Lu</span><span>Ma</span><span>Me</span><span>Je</span><span>Ve</span><span>Sa</span><span style="color:var(--accent)">Auj</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Répartition statuts</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="color:var(--text2)">Livré</span><span style="color:var(--green);font-family:var(--mono)">64%</span></div><div style="background:var(--bg3);border-radius:3px;height:4px"><div style="background:var(--green);width:64%;height:100%;border-radius:3px"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="color:var(--text2)">En transit</span><span style="color:var(--accent);font-family:var(--mono)">29%</span></div><div style="background:var(--bg3);border-radius:3px;height:4px"><div style="background:var(--accent);width:29%;height:100%;border-radius:3px"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="color:var(--text2)">En attente</span><span style="color:var(--orange);font-family:var(--mono)">14%</span></div><div style="background:var(--bg3);border-radius:3px;height:4px"><div style="background:var(--orange);width:14%;height:100%;border-radius:3px"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="color:var(--text2)">Refusé</span><span style="color:var(--red);font-family:var(--mono)">7%</span></div><div style="background:var(--bg3);border-radius:3px;height:4px"><div style="background:var(--red);width:7%;height:100%;border-radius:3px"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <div style="font-size:13px;font-weight:500">Colis récents</div>
+            <div class="filter-row">
+              <div class="filter-btn active">Tous</div>
+              <div class="filter-btn">Aujourd'hui</div>
+              <div class="filter-btn">En attente</div>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Code tracking</th><th>Destinataire</th><th>Ville</th><th>Poids</th><th>Statut</th><th>Dernière MAJ</th></tr></thead>
+            <tbody>
+              <tr onclick="navigate('tracking')" style="cursor:pointer"><td><span class="code">TRA-2026-001247</span></td><td>Marie Kabila</td><td>Kinshasa</td><td>2.4 kg</td><td><span class="status-pill livraison"><span class="s-dot"></span>En livraison</span></td><td style="color:var(--text3)">14:15</td></tr>
+              <tr><td><span class="code">TRA-2026-001246</span></td><td>Pierre Lukeba</td><td>Lubumbashi</td><td>1.1 kg</td><td><span class="status-pill transit"><span class="s-dot"></span>En transit</span></td><td style="color:var(--text3)">12:40</td></tr>
+              <tr><td><span class="code">TRA-2026-001245</span></td><td>Fatou Diallo</td><td>Goma</td><td>4.7 kg</td><td><span class="status-pill livre"><span class="s-dot"></span>Livré</span></td><td style="color:var(--text3)">11:22</td></tr>
+              <tr><td><span class="code">TRA-2026-001244</span> <span class="pending-badge">offline</span></td><td>Amina Nkosi</td><td>Matadi</td><td>0.8 kg</td><td><span class="status-pill enregistre"><span class="s-dot"></span>Enregistré</span></td><td style="color:var(--orange)">Non sync</td></tr>
+              <tr><td><span class="code">TRA-2026-001243</span></td><td>Jean-Luc Mwamba</td><td>Kisangani</td><td>3.2 kg</td><td><span class="status-pill refuse"><span class="s-dot"></span>Refusé</span></td><td style="color:var(--text3)">09:05</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- LISTE COLIS -->
+      <div class="screen" id="screen-colis">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="search-box"><span style="color:var(--text3)">⌕</span><input placeholder="Rechercher par code, nom, ville…"></div>
+            <div class="filter-row">
+              <div class="filter-btn active">Tous (48)</div>
+              <div class="filter-btn">Livré (31)</div>
+              <div class="filter-btn">En cours (14)</div>
+              <div class="filter-btn">Problème (3)</div>
+            </div>
+            <button class="btn btn-ghost btn-sm">⬇ CSV</button>
+          </div>
+          <table>
+            <thead><tr><th><input type="checkbox" style="accent-color:var(--accent)"></th><th>Code tracking</th><th>Expéditeur</th><th>Destinataire</th><th>Ville dest.</th><th>Poids</th><th>Statut</th><th>Date</th></tr></thead>
+            <tbody>
+              <tr style="cursor:pointer" onclick="navigate('tracking')"><td><input type="checkbox" style="accent-color:var(--accent)"></td><td><span class="code">TRA-2026-001247</span></td><td style="color:var(--text2)">K. Nsimba</td><td>Marie Kabila</td><td style="color:var(--text2)">Kinshasa</td><td style="font-family:var(--mono);font-size:12px">2.4 kg</td><td><span class="status-pill livraison"><span class="s-dot"></span>En livraison</span></td><td style="color:var(--text3)">15/03</td></tr>
+              <tr><td><input type="checkbox" style="accent-color:var(--accent)"></td><td><span class="code">TRA-2026-001246</span></td><td style="color:var(--text2)">A. Tshomba</td><td>Pierre Lukeba</td><td style="color:var(--text2)">Lubumbashi</td><td style="font-family:var(--mono);font-size:12px">1.1 kg</td><td><span class="status-pill transit"><span class="s-dot"></span>En transit</span></td><td style="color:var(--text3)">15/03</td></tr>
+              <tr><td><input type="checkbox" style="accent-color:var(--accent)"></td><td><span class="code">TRA-2026-001245</span></td><td style="color:var(--text2)">M. Yamba</td><td>Fatou Diallo</td><td style="color:var(--text2)">Goma</td><td style="font-family:var(--mono);font-size:12px">4.7 kg</td><td><span class="status-pill livre"><span class="s-dot"></span>Livré</span></td><td style="color:var(--text3)">14/03</td></tr>
+              <tr><td><input type="checkbox" style="accent-color:var(--accent)"></td><td><span class="code">TRA-2026-001244</span> <span class="pending-badge">offline</span></td><td style="color:var(--text2)">C. Bokela</td><td>Amina Nkosi</td><td style="color:var(--text2)">Matadi</td><td style="font-family:var(--mono);font-size:12px">0.8 kg</td><td><span class="status-pill enregistre"><span class="s-dot"></span>Enregistré</span></td><td style="color:var(--orange)">Non sync</td></tr>
+              <tr><td><input type="checkbox" style="accent-color:var(--accent)"></td><td><span class="code">TRA-2026-001243</span></td><td style="color:var(--text2)">P. Ilunga</td><td>Jean-Luc Mwamba</td><td style="color:var(--text2)">Kisangani</td><td style="font-family:var(--mono);font-size:12px">3.2 kg</td><td><span class="status-pill refuse"><span class="s-dot"></span>Refusé</span></td><td style="color:var(--text3)">14/03</td></tr>
+              <tr><td><input type="checkbox" style="accent-color:var(--accent)"></td><td><span class="code">TRA-2026-001242</span></td><td style="color:var(--text2)">B. Kasongo</td><td>Solange Mbeki</td><td style="color:var(--text2)">Kinshasa</td><td style="font-family:var(--mono);font-size:12px">1.5 kg</td><td><span class="status-pill livre"><span class="s-dot"></span>Livré</span></td><td style="color:var(--text3)">14/03</td></tr>
+              <tr><td><input type="checkbox" style="accent-color:var(--accent)"></td><td><span class="code">TRA-2026-001241</span></td><td style="color:var(--text2)">F. Mutamba</td><td>David Lumumba</td><td style="color:var(--text2)">Bukavu</td><td style="font-family:var(--mono);font-size:12px">2.9 kg</td><td><span class="status-pill transit"><span class="s-dot"></span>En transit</span></td><td style="color:var(--text3)">13/03</td></tr>
+            </tbody>
+          </table>
+          <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">
+            <span>Affichage 1-7 sur 48 colis</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm">← Préc</button>
+              <button class="btn btn-ghost btn-sm" style="background:var(--accent-glow);color:var(--accent)">1</button>
+              <button class="btn btn-ghost btn-sm">2</button>
+              <button class="btn btn-ghost btn-sm">3</button>
+              <button class="btn btn-ghost btn-sm">Suiv →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOUVEAU COLIS -->
+      <div class="screen" id="screen-nouveau">
+        <div style="max-width:760px">
+          <div class="form-section">
+            <div class="form-section-title"><span>1</span> Expéditeur</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Nom complet *</label><input class="form-input" placeholder="Jean Dupont"></div>
+              <div class="form-group"><label>Téléphone *</label><input class="form-input" placeholder="+243 81 234 5678"></div>
+              <div class="form-group"><label>Email</label><input class="form-input" placeholder="jean@example.com"></div>
+              <div class="form-group"><label>Ville</label><input class="form-input" placeholder="Kinshasa"></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title"><span>2</span> Destinataire</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Nom complet *</label><input class="form-input" placeholder="Marie Martin"></div>
+              <div class="form-group"><label>Téléphone WhatsApp *</label><input class="form-input" placeholder="+243 89 876 5432"></div>
+              <div class="form-group"><label>Email (fallback)</label><input class="form-input" placeholder="marie@example.com"></div>
+              <div class="form-group"><label>Ville de destination *</label>
+                <select class="form-input"><option>Kinshasa</option><option>Lubumbashi</option><option>Goma</option><option>Kisangani</option><option>Matadi</option><option>Bukavu</option></select>
+              </div>
+              <div class="form-group full"><label>Adresse complète</label><input class="form-input" placeholder="123 Avenue de la Paix, Gombe"></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title"><span>3</span> Colis</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Poids (kg) *</label><input class="form-input" type="number" placeholder="2.5" step="0.1"></div>
+              <div class="form-group"><label>Description *</label><input class="form-input" placeholder="Vêtements (3 chemises)"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2)">
+            <div style="font-size:20px">📡</div>
+            <div>
+              <div style="font-size:13px;font-weight:500">Mode hors ligne actif</div>
+              <div style="font-size:12px;color:var(--text3)">Le colis sera stocké localement et synchronisé dès la connexion (3 en attente)</div>
+            </div>
+            <div style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--orange)">TRA-2026-001248</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary" onclick="showToast()">📦 Enregistrer le colis</button>
+            <button class="btn btn-ghost">Annuler</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUIVI PUBLIC -->
+      <div class="screen" id="screen-tracking">
+        <div style="max-width:680px">
+          <div style="display:flex;gap:10px;margin-bottom:20px">
+            <input class="form-input" value="TRA-2026-001247" style="flex:1;font-family:var(--mono);font-size:15px;letter-spacing:1px">
+            <button class="btn btn-primary">🔍 Suivre</button>
+          </div>
+          <div class="tracking-hero">
+            <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Code de suivi</div>
+            <div class="tracking-code">TRA-2026-001247</div>
+            <div class="tracking-status">🚚 En cours de livraison</div>
+            <div style="margin-top:12px;font-size:13px;color:var(--text2)">Destinataire : <strong>Marie Kabila</strong> · Kinshasa, Gombe</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">Transporteur : Jean Mutombo · +243 81 234 5678</div>
+          </div>
+          <div class="two-col" style="margin-bottom:20px">
+            <div class="card">
+              <div class="card-title">Expéditeur</div>
+              <div style="font-size:13px"><div style="font-weight:500">K. Nsimba</div><div style="color:var(--text3);margin-top:4px">+243 81 111 2222</div><div style="color:var(--text3)">Kinshasa · Kintambo</div></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Informations colis</div>
+              <div style="font-size:13px;display:flex;flex-direction:column;gap:4px">
+                <div><span style="color:var(--text3)">Poids :</span> <span style="font-family:var(--mono)">2.4 kg</span></div>
+                <div><span style="color:var(--text3)">Enregistré :</span> 15/03/2026 08:30</div>
+                <div><span style="color:var(--text3)">Délai estimé :</span> <span style="color:var(--green)">Aujourd'hui</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Historique du transport</div>
+            <div class="timeline">
+              <div class="tl-item"><div class="tl-dot done">✓</div><div><div class="tl-title">Colis enregistré</div><div class="tl-meta">15/03/2026 · 08:30</div><div class="tl-loc">Kinshasa, Kintambo</div></div></div>
+              <div class="tl-item"><div class="tl-dot done">✓</div><div><div class="tl-title">Pris en charge par le transporteur</div><div class="tl-meta">15/03/2026 · 09:15</div><div class="tl-loc">Kinshasa, Kintambo</div></div></div>
+              <div class="tl-item"><div class="tl-dot done">✓</div><div><div class="tl-title">Arrivé au dépôt de destination</div><div class="tl-meta">15/03/2026 · 12:40</div><div class="tl-loc">Kinshasa, Gombe · Dépôt central</div></div></div>
+              <div class="tl-item"><div class="tl-dot active">→</div><div><div class="tl-title" style="color:var(--orange)">En cours de livraison</div><div class="tl-meta">15/03/2026 · 14:15</div><div class="tl-loc">Kinshasa, Gombe · Sortie pour livraison</div></div></div>
+              <div class="tl-item"><div class="tl-dot pending">○</div><div style="opacity:.5"><div class="tl-title">Livré</div><div class="tl-meta">En attente…</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SYNCHRONISATION -->
+      <div class="screen" id="screen-sync">
+        <div id="syncOfflineBanner" class="offline-banner" style="display:none">⚠️ Mode hors ligne · Les données sont stockées localement. Synchronisation automatique dès la reconnexion.</div>
+        <div class="sync-hero">
+          <div class="sync-status-big" id="syncEmoji">✅</div>
+          <div class="sync-label" id="syncBigLabel">Synchronisation à jour</div>
+          <div class="sync-info" id="syncBigInfo">Dernière sync : aujourd'hui à 14:32 · 3 colis en attente local</div>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:100%"></div></div>
+          <div style="font-size:12px;color:var(--text3)" id="progressLabel">48 colis synchronisés · 0 erreur</div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="simulateSync()">⟳ Synchroniser maintenant</button>
+        </div>
+        <div class="sync-stats">
+          <div class="sync-stat"><div class="sync-stat-num" style="color:var(--green)" id="statReussi">48</div><div class="sync-stat-lbl">Réussis</div></div>
+          <div class="sync-stat"><div class="sync-stat-num" style="color:var(--orange)" id="statPending">3</div><div class="sync-stat-lbl">En attente</div></div>
+          <div class="sync-stat"><div class="sync-stat-num" style="color:var(--red)" id="statEchec">0</div><div class="sync-stat-lbl">Échecs</div></div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Stockage local (IndexedDB)</div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:6px"><span>51 colis locaux / 1500 max</span><span style="color:var(--green)">3.4% utilisé</span></div>
+          <div class="progress-bar" style="margin:0"><div class="progress-fill" style="width:3.4%;background:var(--green)"></div></div>
+        </div>
+        <div class="sync-log">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:500;color:var(--text2)">Journal de synchronisation</div>
+          <div class="log-line"><span class="log-time">14:32:01</span><span class="log-ok">✓ Upload batch · 48 colis envoyés</span></div>
+          <div class="log-line"><span class="log-time">14:32:03</span><span class="log-ok">✓ 48 colis acceptés par le serveur</span></div>
+          <div class="log-line"><span class="log-time">14:32:03</span><span class="log-info">↓ Download · 2 mises à jour reçues</span></div>
+          <div class="log-line"><span class="log-time">14:32:04</span><span class="log-ok">✓ Merge local terminé · 0 conflit</span></div>
+          <div class="log-line"><span class="log-time">12:15:22</span><span class="log-warn">⚠ Colis TRA-2026-001244 · téléphone invalide</span></div>
+          <div class="log-line"><span class="log-time">09:01:44</span><span class="log-ok">✓ Sync matinale · 23 colis</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:12px 18px;border-radius:var(--r2);font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(80px);transition:transform .3s ease;z-index:999;display:flex;align-items:center;gap:8px">
+  ✓ Colis TRA-2026-001248 enregistré (mode offline)
+</div>
+
+<script>
+const pages={dashboard:{title:'Dashboard',sub:'Dimanche 15 mars 2026 · Kinshasa'},colis:{title:'Mes colis',sub:'48 colis au total · 3 non synchronisés'},nouveau:{title:'Nouveau colis',sub:'Création · Mode hors ligne disponible'},tracking:{title:'Suivi public',sub:'Consultation sans authentification'},sync:{title:'Synchronisation',sub:'IndexedDB · Background Sync API'}};
+let isOffline=false;
+function navigate(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');const el=document.querySelector('[data-screen="'+id+'"]');if(el)el.classList.add('active');document.getElementById('pageTitle').textContent=pages[id].title;document.getElementById('pageSub').textContent=pages[id].sub;}
+function toggleOffline(){isOffline=!isOffline;const pill=document.getElementById('syncPill'),txt=document.getElementById('syncText'),banner=document.getElementById('syncOfflineBanner'),emoji=document.getElementById('syncEmoji'),lbl=document.getElementById('syncBigLabel'),info=document.getElementById('syncBigInfo');if(isOffline){pill.className='sync-pill offline';txt.textContent='Hors ligne · 3 en attente';banner.style.display='flex';emoji.textContent='📡';lbl.textContent='Mode hors ligne';info.textContent='3 colis en attente · Reconnectez-vous pour envoyer';document.getElementById('progressFill').style.width='0%';document.getElementById('progressLabel').textContent='En attente de connexion…';}else{pill.className='sync-pill online';txt.textContent='Synchronisé · 14:32';banner.style.display='none';emoji.textContent='✅';lbl.textContent='Synchronisation à jour';info.textContent='Dernière sync : aujourd\'hui à 14:32';document.getElementById('progressFill').style.width='100%';document.getElementById('progressLabel').textContent='48 colis synchronisés · 0 erreur';}}
+function simulateSync(){if(isOffline){alert('Pas de connexion Internet disponible.');return;}const fill=document.getElementById('progressFill'),lbl=document.getElementById('progressLabel'),emoji=document.getElementById('syncEmoji'),blbl=document.getElementById('syncBigLabel');emoji.textContent='⟳';blbl.textContent='Synchronisation en cours…';fill.style.width='0%';lbl.textContent='Connexion au serveur…';setTimeout(()=>{fill.style.width='40%';lbl.textContent='Upload batch · 3 colis envoyés…';},400);setTimeout(()=>{fill.style.width='75%';lbl.textContent='Validation serveur…';},1000);setTimeout(()=>{fill.style.width='95%';lbl.textContent='Download mises à jour…';},1600);setTimeout(()=>{fill.style.width='100%';lbl.textContent='51 colis synchronisés · 0 erreur';emoji.textContent='✅';blbl.textContent='Synchronisation à jour';document.getElementById('statReussi').textContent='51';document.getElementById('statPending').textContent='0';document.getElementById('syncText').textContent='Synchronisé · maintenant';},2200);}
+function showToast(){const t=document.getElementById('toast');t.style.transform='translateY(0)';setTimeout(()=>t.style.transform='translateY(80px)',3000);}
+document.querySelectorAll('.filter-btn').forEach(b=>{b.addEventListener('click',function(){this.closest('.filter-row').querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));this.classList.add('active');});});
+</script>
+</body>
+</html>
