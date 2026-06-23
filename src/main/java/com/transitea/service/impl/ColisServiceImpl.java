@@ -4,6 +4,7 @@ import com.transitea.dto.request.CreationColisRequete;
 import com.transitea.dto.request.MiseAJourStatutRequete;
 import com.transitea.dto.response.ColisReponse;
 import com.transitea.dto.response.ReponsePagee;
+import com.transitea.dto.response.StatistiquesReponse;
 import com.transitea.entity.Colis;
 import com.transitea.entity.MiseAJourStatut;
 import com.transitea.entity.Utilisateur;
@@ -27,7 +28,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -90,26 +94,45 @@ public class ColisServiceImpl implements ColisService {
     @Override
     @Transactional(readOnly = true)
     public ReponsePagee<ColisReponse> lister(
-            Utilisateur transporteur, StatutColis statut, Pageable pageable) {
+            Utilisateur utilisateur, StatutColis statut, Pageable pageable) {
 
         Page<Colis> page;
 
-        if (statut != null) {
-            page = colisRepository.findByTransporteurAndStatutActuelAndSupprimeFalse(
-                    transporteur, statut, pageable);
+        if (estPrivilegié(utilisateur)) {
+            page = statut != null
+                    ? colisRepository.findByStatutActuelAndSupprimeFalse(statut, pageable)
+                    : colisRepository.findBySupprimeFalse(pageable);
         } else {
-            page = colisRepository.findByTransporteurAndSupprimeFalse(transporteur, pageable);
+            page = statut != null
+                    ? colisRepository.findByTransporteurAndStatutActuelAndSupprimeFalse(
+                            utilisateur, statut, pageable)
+                    : colisRepository.findByTransporteurAndSupprimeFalse(utilisateur, pageable);
         }
 
-        Page<ColisReponse> pageReponse = page.map(colisMapper::versReponse);
-        return ReponsePagee.depuis(pageReponse);
+        return ReponsePagee.depuis(page.map(colisMapper::versReponse));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ColisReponse trouverParId(Long id, Utilisateur transporteur) {
+    public ReponsePagee<ColisReponse> rechercher(
+            Utilisateur utilisateur, String recherche, Pageable pageable) {
+
+        Page<Colis> page;
+
+        if (estPrivilegié(utilisateur)) {
+            page = colisRepository.rechercherTous(recherche, pageable);
+        } else {
+            page = colisRepository.rechercherParTransporteur(utilisateur, recherche, pageable);
+        }
+
+        return ReponsePagee.depuis(page.map(colisMapper::versReponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ColisReponse trouverParId(Long id, Utilisateur utilisateur) {
         Colis colis = recupererColisOuEchouer(id);
-        verifierAccesAuColis(colis, transporteur);
+        verifierAcces(colis, utilisateur);
 
         List<MiseAJourStatut> historique =
                 miseAJourStatutRepository.findByColisOrderByDateCreationAsc(colis);
@@ -145,7 +168,7 @@ public class ColisServiceImpl implements ColisService {
             Long id, MiseAJourStatutRequete requete, Utilisateur utilisateur) {
 
         Colis colis = recupererColisOuEchouer(id);
-        verifierAccesAuColis(colis, utilisateur);
+        verifierAcces(colis, utilisateur);
 
         StatutColis ancienStatut = colis.getStatutActuel();
         ValidateurTransitionStatut.valider(ancienStatut, requete.statut());
@@ -171,9 +194,9 @@ public class ColisServiceImpl implements ColisService {
     }
 
     @Override
-    public void supprimer(Long id, Utilisateur transporteur) {
+    public void supprimer(Long id, Utilisateur utilisateur) {
         Colis colis = recupererColisOuEchouer(id);
-        verifierAccesAuColis(colis, transporteur);
+        verifierAcces(colis, utilisateur);
 
         colis.setSupprime(true);
         colisRepository.save(colis);
@@ -185,9 +208,25 @@ public class ColisServiceImpl implements ColisService {
     @Transactional(readOnly = true)
     public byte[] genererQrCode(Long id, Utilisateur utilisateur) {
         Colis colis = recupererColisOuEchouer(id);
-        verifierAccesAuColis(colis, utilisateur);
+        verifierAcces(colis, utilisateur);
         String urlTracking = baseUrl + "/v1/tracking/" + colis.getCodeTracking();
         return qrCodeService.generer(urlTracking);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StatistiquesReponse obtenirStatistiques(Utilisateur utilisateur) {
+        Map<StatutColis, Long> parStatut = Arrays.stream(StatutColis.values())
+                .collect(Collectors.toMap(
+                        statut -> statut,
+                        statut -> estPrivilegié(utilisateur)
+                                ? colisRepository.countByStatutActuelAndSupprimeFalse(statut)
+                                : colisRepository.countByTransporteurAndStatutActuelAndSupprimeFalse(
+                                        utilisateur, statut)
+                ));
+
+        long total = parStatut.values().stream().mapToLong(Long::longValue).sum();
+        return new StatistiquesReponse(total, parStatut);
     }
 
     private Colis recupererColisOuEchouer(Long id) {
@@ -196,13 +235,15 @@ public class ColisServiceImpl implements ColisService {
                 .orElseThrow(() -> new EntiteNonTrouveeException("Colis", id));
     }
 
-    private void verifierAccesAuColis(Colis colis, Utilisateur utilisateur) {
-        boolean estAdmin = utilisateur.getRole() == Role.ADMIN;
+    private void verifierAcces(Colis colis, Utilisateur utilisateur) {
         boolean estProprietaire = colis.getTransporteur().getId().equals(utilisateur.getId());
-
-        if (!estAdmin && !estProprietaire) {
+        if (!estPrivilegié(utilisateur) && !estProprietaire) {
             throw new AccesNonAutoriseException();
         }
+    }
+
+    private boolean estPrivilegié(Utilisateur utilisateur) {
+        return utilisateur.getRole() == Role.ADMIN || utilisateur.getRole() == Role.OPERATEUR;
     }
 
     private void enregistrerHistoriqueStatut(

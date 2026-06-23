@@ -4,6 +4,7 @@ import com.transitea.dto.request.CreationColisRequete;
 import com.transitea.dto.request.MiseAJourStatutRequete;
 import com.transitea.dto.response.ColisReponse;
 import com.transitea.dto.response.ReponsePagee;
+import com.transitea.dto.response.StatistiquesReponse;
 import com.transitea.entity.Utilisateur;
 import com.transitea.entity.enums.StatutColis;
 import com.transitea.service.ColisService;
@@ -39,7 +40,7 @@ public class ColisController {
     }
 
     @PostMapping
-    public ResponseEntity<ColisReponse> create(
+    public ResponseEntity<ColisReponse> creer(
             @Valid @RequestBody CreationColisRequete requete,
             @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
 
@@ -48,7 +49,7 @@ public class ColisController {
     }
 
     @GetMapping
-    public ResponseEntity<ReponsePagee<ColisReponse>> list(
+    public ResponseEntity<ReponsePagee<ColisReponse>> lister(
             @RequestParam(required = false) StatutColis statut,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "" + TAILLE_PAGE_PAR_DEFAUT) int taille,
@@ -57,23 +58,39 @@ public class ColisController {
         Pageable pageable = PageRequest.of(
                 page, taille, Sort.by(Sort.Direction.DESC, "dateCreation"));
 
-        ReponsePagee<ColisReponse> reponse =
-                colisService.lister(utilisateurConnecte, statut, pageable);
+        return ResponseEntity.ok(colisService.lister(utilisateurConnecte, statut, pageable));
+    }
 
-        return ResponseEntity.ok(reponse);
+    @GetMapping("/recherche")
+    public ResponseEntity<ReponsePagee<ColisReponse>> rechercher(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "" + TAILLE_PAGE_PAR_DEFAUT) int taille,
+            @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
+
+        Pageable pageable = PageRequest.of(
+                page, taille, Sort.by(Sort.Direction.DESC, "dateCreation"));
+
+        return ResponseEntity.ok(colisService.rechercher(utilisateurConnecte, q, pageable));
+    }
+
+    @GetMapping("/statistiques")
+    public ResponseEntity<StatistiquesReponse> statistiques(
+            @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
+
+        return ResponseEntity.ok(colisService.obtenirStatistiques(utilisateurConnecte));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ColisReponse> findById(
+    public ResponseEntity<ColisReponse> trouverParId(
             @PathVariable Long id,
             @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
 
-        ColisReponse reponse = colisService.trouverParId(id, utilisateurConnecte);
-        return ResponseEntity.ok(reponse);
+        return ResponseEntity.ok(colisService.trouverParId(id, utilisateurConnecte));
     }
 
     @GetMapping(value = "/{id}/qrcode", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<byte[]> getQrCode(
+    public ResponseEntity<byte[]> genererQrCode(
             @PathVariable Long id,
             @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
 
@@ -84,18 +101,17 @@ public class ColisController {
     }
 
     @PatchMapping("/{id}/statut")
-    public ResponseEntity<ColisReponse> updateStatus(
+    public ResponseEntity<ColisReponse> mettreAJourStatut(
             @PathVariable Long id,
             @Valid @RequestBody MiseAJourStatutRequete requete,
             @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
 
-        ColisReponse reponse = colisService.mettreAJourStatut(id, requete, utilisateurConnecte);
-        return ResponseEntity.ok(reponse);
+        return ResponseEntity.ok(colisService.mettreAJourStatut(id, requete, utilisateurConnecte));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(
+    public void supprimer(
             @PathVariable Long id,
             @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
 
