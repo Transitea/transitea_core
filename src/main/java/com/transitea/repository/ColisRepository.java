@@ -41,6 +41,17 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
     long countByTransporteurAndStatutActuelAndSupprimeFalse(
             Utilisateur transporteur, StatutColis statut);
 
+    long countByStatutActuelAndSupprimeFalse(StatutColis statut);
+
+    Page<Colis> findBySupprimeFalse(Pageable pageable);
+
+    Page<Colis> findByStatutActuelAndSupprimeFalse(StatutColis statut, Pageable pageable);
+
+    @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
+           "AND (LOWER(c.destinataireNom) LIKE LOWER(CONCAT('%', :recherche, '%')) " +
+           "OR LOWER(c.codeTracking) LIKE LOWER(CONCAT('%', :recherche, '%')))")
+    Page<Colis> rechercherTous(@Param("recherche") String recherche, Pageable pageable);
+
     @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
            "AND c.dateCreation < :dateLimite")
     List<Colis> trouverColisAArchiver(@Param("dateLimite") LocalDateTime dateLimite);

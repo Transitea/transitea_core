@@ -1,0 +1,24 @@
+meta {
+  name: 1 - Export CSV colis
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/export/colis?debut=2026-01-01&fin=2026-12-31
+  body: none
+  auth: inherit
+}
+
+params:query {
+  debut: 2026-01-01
+  fin: 2026-12-31
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+settings {
+  encodeUrl: true
+}

@@ -4,6 +4,7 @@ import com.transitea.dto.request.CreationColisRequete;
 import com.transitea.dto.request.MiseAJourStatutRequete;
 import com.transitea.dto.response.ColisReponse;
 import com.transitea.dto.response.ReponsePagee;
+import com.transitea.dto.response.StatistiquesReponse;
 import com.transitea.entity.Colis;
 import com.transitea.entity.MiseAJourStatut;
 import com.transitea.entity.Utilisateur;
@@ -24,11 +25,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -67,6 +68,7 @@ class ColisServiceImplTest {
     private Utilisateur transporteur;
     private Utilisateur autreTransporteur;
     private Utilisateur admin;
+    private Utilisateur operateur;
     private Colis colis;
     private ColisReponse colisReponse;
 
@@ -97,6 +99,14 @@ class ColisServiceImplTest {
                 .role(Role.ADMIN)
                 .build();
         admin.setId(3L);
+
+        operateur = Utilisateur.builder()
+                .nom("Mutombo")
+                .prenom("Pierre")
+                .email("operateur@transitea.cd")
+                .role(Role.OPERATEUR)
+                .build();
+        operateur.setId(4L);
 
         colis = Colis.builder()
                 .codeTracking("TRA-2026-ABC123")
@@ -159,7 +169,7 @@ class ColisServiceImplTest {
     // --- lister ---
 
     @Test
-    void doit_retourner_tous_les_colis_quand_statut_null() {
+    void doit_retourner_tous_les_colis_quand_statut_null_et_transporteur() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Colis> page = new PageImpl<>(List.of(colis));
         when(colisRepository.findByTransporteurAndSupprimeFalse(transporteur, pageable))
@@ -170,12 +180,11 @@ class ColisServiceImplTest {
 
         assertThat(resultat.contenu()).hasSize(1);
         verify(colisRepository).findByTransporteurAndSupprimeFalse(transporteur, pageable);
-        verify(colisRepository, never())
-                .findByTransporteurAndStatutActuelAndSupprimeFalse(any(), any(), any());
+        verify(colisRepository, never()).findBySupprimeFalse(any());
     }
 
     @Test
-    void doit_filtrer_par_statut_quand_statut_fourni() {
+    void doit_filtrer_par_statut_quand_statut_fourni_et_transporteur() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Colis> page = new PageImpl<>(List.of(colis));
         when(colisRepository.findByTransporteurAndStatutActuelAndSupprimeFalse(
@@ -190,6 +199,77 @@ class ColisServiceImplTest {
         verify(colisRepository).findByTransporteurAndStatutActuelAndSupprimeFalse(
                 transporteur, StatutColis.ENREGISTRE, pageable);
         verify(colisRepository, never()).findByTransporteurAndSupprimeFalse(any(), any());
+    }
+
+    @Test
+    void doit_retourner_tous_les_colis_quand_admin_liste() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Colis> page = new PageImpl<>(List.of(colis));
+        when(colisRepository.findBySupprimeFalse(pageable)).thenReturn(page);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        ReponsePagee<ColisReponse> resultat = colisService.lister(admin, null, pageable);
+
+        assertThat(resultat.contenu()).hasSize(1);
+        verify(colisRepository).findBySupprimeFalse(pageable);
+        verify(colisRepository, never()).findByTransporteurAndSupprimeFalse(any(), any());
+    }
+
+    @Test
+    void doit_retourner_tous_les_colis_quand_operateur_liste() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Colis> page = new PageImpl<>(List.of(colis));
+        when(colisRepository.findBySupprimeFalse(pageable)).thenReturn(page);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        ReponsePagee<ColisReponse> resultat = colisService.lister(operateur, null, pageable);
+
+        assertThat(resultat.contenu()).hasSize(1);
+        verify(colisRepository).findBySupprimeFalse(pageable);
+    }
+
+    // --- rechercher ---
+
+    @Test
+    void doit_rechercher_dans_ses_colis_quand_transporteur() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Colis> page = new PageImpl<>(List.of(colis));
+        when(colisRepository.rechercherParTransporteur(transporteur, "Marie", pageable))
+                .thenReturn(page);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        ReponsePagee<ColisReponse> resultat = colisService.rechercher(transporteur, "Marie", pageable);
+
+        assertThat(resultat.contenu()).hasSize(1);
+        verify(colisRepository).rechercherParTransporteur(transporteur, "Marie", pageable);
+        verify(colisRepository, never()).rechercherTous(anyString(), any());
+    }
+
+    @Test
+    void doit_rechercher_dans_tous_les_colis_quand_admin() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Colis> page = new PageImpl<>(List.of(colis));
+        when(colisRepository.rechercherTous("Marie", pageable)).thenReturn(page);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        ReponsePagee<ColisReponse> resultat = colisService.rechercher(admin, "Marie", pageable);
+
+        assertThat(resultat.contenu()).hasSize(1);
+        verify(colisRepository).rechercherTous("Marie", pageable);
+        verify(colisRepository, never()).rechercherParTransporteur(any(), anyString(), any());
+    }
+
+    @Test
+    void doit_rechercher_dans_tous_les_colis_quand_operateur() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Colis> page = new PageImpl<>(List.of(colis));
+        when(colisRepository.rechercherTous("TRA-2026", pageable)).thenReturn(page);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        ReponsePagee<ColisReponse> resultat = colisService.rechercher(operateur, "TRA-2026", pageable);
+
+        assertThat(resultat.contenu()).hasSize(1);
+        verify(colisRepository).rechercherTous("TRA-2026", pageable);
     }
 
     // --- trouverParId ---
@@ -217,6 +297,19 @@ class ColisServiceImplTest {
         when(colisMapper.versMiseAJourReponses(any())).thenReturn(List.of());
 
         ColisReponse resultat = colisService.trouverParId(10L, admin);
+
+        assertThat(resultat).isNotNull();
+    }
+
+    @Test
+    void doit_autoriser_operateur_pour_nimporte_quel_colis() {
+        when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
+        when(miseAJourStatutRepository.findByColisOrderByDateCreationAsc(colis))
+                .thenReturn(List.of());
+        when(colisMapper.versReponse(colis)).thenReturn(colisReponse);
+        when(colisMapper.versMiseAJourReponses(any())).thenReturn(List.of());
+
+        ColisReponse resultat = colisService.trouverParId(10L, operateur);
 
         assertThat(resultat).isNotNull();
     }
@@ -253,6 +346,19 @@ class ColisServiceImplTest {
         verify(miseAJourStatutRepository).save(captor.capture());
         assertThat(captor.getValue().getStatut()).isEqualTo(StatutColis.PRIS_EN_CHARGE);
         assertThat(captor.getValue().getAncienStatut()).isEqualTo(StatutColis.ENREGISTRE);
+    }
+
+    @Test
+    void doit_autoriser_operateur_a_mettre_a_jour_statut() {
+        MiseAJourStatutRequete requete = new MiseAJourStatutRequete(
+                StatutColis.PRIS_EN_CHARGE, "Kinshasa", null);
+        when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
+        when(colisRepository.save(any(Colis.class))).thenReturn(colis);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        colisService.mettreAJourStatut(10L, requete, operateur);
+
+        verify(miseAJourStatutRepository).save(any(MiseAJourStatut.class));
     }
 
     @Test
@@ -320,6 +426,16 @@ class ColisServiceImplTest {
         verify(colisRepository, times(1)).save(any(Colis.class));
     }
 
+    @Test
+    void doit_autoriser_operateur_a_supprimer_nimporte_quel_colis() {
+        when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
+        when(colisRepository.save(any(Colis.class))).thenReturn(colis);
+
+        colisService.supprimer(10L, operateur);
+
+        verify(colisRepository, times(1)).save(any(Colis.class));
+    }
+
     // --- genererQrCode ---
 
     @Test
@@ -348,6 +464,18 @@ class ColisServiceImplTest {
     }
 
     @Test
+    void doit_generer_qrcode_quand_operateur() {
+        byte[] qrCodeBytes = new byte[]{1, 2, 3};
+        String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
+        when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
+        when(qrCodeService.generer(urlTracking)).thenReturn(qrCodeBytes);
+
+        byte[] resultat = colisService.genererQrCode(10L, operateur);
+
+        assertThat(resultat).isEqualTo(qrCodeBytes);
+    }
+
+    @Test
     void doit_lancer_acces_non_autorise_exception_quand_qrcode_demande_par_non_proprietaire() {
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
 
@@ -363,5 +491,43 @@ class ColisServiceImplTest {
 
         assertThatThrownBy(() -> colisService.genererQrCode(99L, transporteur))
                 .isInstanceOf(EntiteNonTrouveeException.class);
+    }
+
+    // --- obtenirStatistiques ---
+
+    @Test
+    void doit_compter_par_statut_pour_transporteur() {
+        when(colisRepository.countByTransporteurAndStatutActuelAndSupprimeFalse(
+                any(), any())).thenReturn(2L);
+
+        StatistiquesReponse resultat = colisService.obtenirStatistiques(transporteur);
+
+        assertThat(resultat).isNotNull();
+        assertThat(resultat.parStatut()).containsKey(StatutColis.ENREGISTRE);
+        assertThat(resultat.total()).isGreaterThanOrEqualTo(0);
+        verify(colisRepository, never()).countByStatutActuelAndSupprimeFalse(any());
+    }
+
+    @Test
+    void doit_compter_tous_les_colis_par_statut_pour_admin() {
+        when(colisRepository.countByStatutActuelAndSupprimeFalse(any())).thenReturn(3L);
+
+        StatistiquesReponse resultat = colisService.obtenirStatistiques(admin);
+
+        assertThat(resultat).isNotNull();
+        assertThat(resultat.parStatut()).containsKey(StatutColis.EN_TRANSIT);
+        verify(colisRepository, never())
+                .countByTransporteurAndStatutActuelAndSupprimeFalse(any(), any());
+    }
+
+    @Test
+    void doit_compter_tous_les_colis_par_statut_pour_operateur() {
+        when(colisRepository.countByStatutActuelAndSupprimeFalse(any())).thenReturn(1L);
+
+        StatistiquesReponse resultat = colisService.obtenirStatistiques(operateur);
+
+        assertThat(resultat.parStatut()).hasSize(StatutColis.values().length);
+        verify(colisRepository, never())
+                .countByTransporteurAndStatutActuelAndSupprimeFalse(any(), any());
     }
 }

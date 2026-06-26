@@ -1,0 +1,19 @@
+meta {
+  name: 8 - Statistiques
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/v1/colis/statistiques
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+settings {
+  encodeUrl: true
+}

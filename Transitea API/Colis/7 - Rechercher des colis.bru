@@ -1,0 +1,25 @@
+meta {
+  name: 7 - Rechercher des colis
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/v1/colis/recherche?q=Marie&page=0&taille=20
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: Marie
+  page: 0
+  taille: 20
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+settings {
+  encodeUrl: true
+}
