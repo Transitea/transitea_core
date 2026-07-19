@@ -1,0 +1,59 @@
+meta {
+  name: 1 - Synchroniser colis hors-ligne
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/sync
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "colis": [
+      {
+        "expediteurNom": "Kabila Marcel",
+        "expediteurTelephone": "+243900000010",
+        "expediteurEmail": "marcel@exemple.cd",
+        "destinataireNom": "Tshisekedi Alain",
+        "destinataireTelephone": "+243900000011",
+        "destinataireEmail": "alain@exemple.cd",
+        "destinataireAdresse": "Avenue Kasa-Vubu N12",
+        "destinataireVille": "Lubumbashi",
+        "description": "Vetements",
+        "poids": 3.500,
+        "localId": 1001
+      },
+      {
+        "expediteurNom": "Nzinga Sophie",
+        "expediteurTelephone": "+243900000012",
+        "destinataireNom": "Lumumba Robert",
+        "destinataireTelephone": "+243900000013",
+        "destinataireEmail": "robert@exemple.cd",
+        "destinataireAdresse": "Quartier Makutano",
+        "destinataireVille": "Goma",
+        "description": "Materiel informatique",
+        "poids": 12.000,
+        "localId": 1002
+      }
+    ]
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    var json = res.getBody();
+    console.log('Sync terminee : ' + json.nbReussis + ' reussis, ' + json.nbDoublons + ' doublons, ' + json.nbEchecs + ' echecs');
+  }
+}
+
+settings {
+  encodeUrl: true
+}

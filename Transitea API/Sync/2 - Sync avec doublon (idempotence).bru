@@ -1,0 +1,41 @@
+meta {
+  name: 2 - Sync avec doublon (idempotence)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/sync
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "colis": [
+      {
+        "expediteurNom": "Kabila Marcel",
+        "expediteurTelephone": "+243900000010",
+        "destinataireNom": "Tshisekedi Alain",
+        "destinataireVille": "Lubumbashi",
+        "description": "Vetements",
+        "poids": 3.500,
+        "localId": 1001
+      }
+    ]
+  }
+}
+
+docs {
+  Renvoyer le meme localId doit retourner doublon=true sans creer de doublon en BDD.
+  nbDoublons doit etre 1, nbReussis doit etre 0.
+}
+
+settings {
+  encodeUrl: true
+}

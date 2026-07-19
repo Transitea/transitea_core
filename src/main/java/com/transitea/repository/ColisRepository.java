@@ -21,10 +21,17 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
 
     Optional<Colis> findByUuidAndSupprimeFalse(String uuid);
 
+    Optional<Colis> findByTransporteurAndLocalIdAndSupprimeFalse(
+            Utilisateur transporteur, Long localId);
+
     Page<Colis> findByTransporteurAndSupprimeFalse(Utilisateur transporteur, Pageable pageable);
 
     Page<Colis> findByTransporteurAndStatutActuelAndSupprimeFalse(
             Utilisateur transporteur, StatutColis statut, Pageable pageable);
+
+    Page<Colis> findBySupprimeFalse(Pageable pageable);
+
+    Page<Colis> findByStatutActuelAndSupprimeFalse(StatutColis statut, Pageable pageable);
 
     @Query("SELECT c FROM Colis c WHERE c.transporteur = :transporteur " +
            "AND c.supprime = false " +
@@ -35,6 +42,11 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
             @Param("recherche") String recherche,
             Pageable pageable);
 
+    @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
+           "AND (LOWER(c.destinataireNom) LIKE LOWER(CONCAT('%', :recherche, '%')) " +
+           "OR LOWER(c.codeTracking) LIKE LOWER(CONCAT('%', :recherche, '%')))")
+    Page<Colis> rechercherTous(@Param("recherche") String recherche, Pageable pageable);
+
     List<Colis> findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
             Utilisateur transporteur, LocalDateTime debut, LocalDateTime fin);
 
@@ -42,15 +54,6 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
             Utilisateur transporteur, StatutColis statut);
 
     long countByStatutActuelAndSupprimeFalse(StatutColis statut);
-
-    Page<Colis> findBySupprimeFalse(Pageable pageable);
-
-    Page<Colis> findByStatutActuelAndSupprimeFalse(StatutColis statut, Pageable pageable);
-
-    @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
-           "AND (LOWER(c.destinataireNom) LIKE LOWER(CONCAT('%', :recherche, '%')) " +
-           "OR LOWER(c.codeTracking) LIKE LOWER(CONCAT('%', :recherche, '%')))")
-    Page<Colis> rechercherTous(@Param("recherche") String recherche, Pageable pageable);
 
     @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
            "AND c.dateCreation < :dateLimite")
