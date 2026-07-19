@@ -63,26 +63,26 @@ public class DataInitialiseur implements CommandLineRunner {
         journal.info("[DEV] Initialisation des donnees de test...");
 
         Enseigne enseigne = creerEnseigne();
-        Agence agenceKinshasa = creerAgence(enseigne, "Agence Kinshasa", "Kinshasa", "Avenue Kasa-Vubu N12");
-        Agence agenceLubumbashi = creerAgence(enseigne, "Agence Lubumbashi", "Lubumbashi", "Avenue Mobutu N3");
-        Agence agenceGoma = creerAgence(enseigne, "Agence Goma", "Goma", "Quartier Makutano");
+        Agence agenceParis = creerAgence(enseigne, "Agence Paris", "Paris", "12 Rue de Rivoli, 75004 Paris");
+        Agence agenceLyon = creerAgence(enseigne, "Agence Lyon", "Lyon", "8 Rue de la Republique, 69002 Lyon");
+        Agence agenceMarseille = creerAgence(enseigne, "Agence Marseille", "Marseille", "45 La Canebiere, 13001 Marseille");
 
         Utilisateur admin = creerAdmin();
-        creerOperateur(agenceKinshasa);
-        Utilisateur agent = creerAgent(agenceKinshasa);
+        creerOperateur(agenceParis);
+        Utilisateur agent = creerAgent(agenceParis);
 
-        creerColisAvecHistorique(agenceKinshasa, agenceLubumbashi, agenceGoma, agent, admin);
+        creerColisAvecHistorique(agenceParis, agenceLyon, agenceMarseille, agent, admin);
 
         journal.info("[DEV] Donnees de test inserees avec succes");
         journal.info("[DEV] --- Comptes disponibles ---");
-        journal.info("[DEV] ADMIN     : admin@transitea.cd     / admin123");
-        journal.info("[DEV] OPERATEUR : operateur@transitea.cd / operateur123");
-        journal.info("[DEV] AGENT     : agent@transitea.cd      / agent123");
+        journal.info("[DEV] ADMIN     : admin@transitea.fr     / admin123");
+        journal.info("[DEV] OPERATEUR : operateur@transitea.fr / operateur123");
+        journal.info("[DEV] AGENT     : agent@transitea.fr     / agent123");
     }
 
     private Enseigne creerEnseigne() {
         Enseigne enseigne = Enseigne.builder()
-                .nom("Transitea RDC")
+                .nom("Transitea France")
                 .palierAbonnement(PalierAbonnement.STANDARD)
                 .quotaColisMois(5000)
                 .dateDebutAbonnement(LocalDateTime.now())
@@ -102,10 +102,10 @@ public class DataInitialiseur implements CommandLineRunner {
 
     private Utilisateur creerAdmin() {
         Utilisateur admin = Utilisateur.builder()
-                .nom("Lalande")
-                .prenom("Jean-Paul")
-                .email("admin@transitea.cd")
-                .telephone("+243900000000")
+                .nom("Moreau")
+                .prenom("Camille")
+                .email("admin@transitea.fr")
+                .telephone("+33612345678")
                 .motDePasseHash(encodeurMotDePasse.encode("admin123"))
                 .role(Role.ADMIN)
                 .build();
@@ -114,10 +114,10 @@ public class DataInitialiseur implements CommandLineRunner {
 
     private Utilisateur creerOperateur(Agence agence) {
         Utilisateur operateur = Utilisateur.builder()
-                .nom("Mutombo")
-                .prenom("Pierre")
-                .email("operateur@transitea.cd")
-                .telephone("+243900000002")
+                .nom("Bernard")
+                .prenom("Julien")
+                .email("operateur@transitea.fr")
+                .telephone("+33623456789")
                 .motDePasseHash(encodeurMotDePasse.encode("operateur123"))
                 .role(Role.OPERATEUR)
                 .agence(agence)
@@ -127,10 +127,10 @@ public class DataInitialiseur implements CommandLineRunner {
 
     private Utilisateur creerAgent(Agence agence) {
         Utilisateur agent = Utilisateur.builder()
-                .nom("Lumbu")
-                .prenom("Louange")
-                .email("agent@transitea.cd")
-                .telephone("+243900000001")
+                .nom("Lefebvre")
+                .prenom("Manon")
+                .email("agent@transitea.fr")
+                .telephone("+33634567890")
                 .motDePasseHash(encodeurMotDePasse.encode("agent123"))
                 .role(Role.AGENT)
                 .agence(agence)
@@ -139,64 +139,64 @@ public class DataInitialiseur implements CommandLineRunner {
     }
 
     private void creerColisAvecHistorique(
-            Agence agenceKinshasa, Agence agenceLubumbashi, Agence agenceGoma,
+            Agence agenceParis, Agence agenceLyon, Agence agenceMarseille,
             Utilisateur agent, Utilisateur admin) {
 
         Colis colisEnregistre = creerColis(
-                agenceKinshasa, agenceLubumbashi, agent, "TRA-2026-TEST01",
-                "Kabila Marcel", "+243900000010", "marcel@exemple.cd",
-                "Tshisekedi Alain", "+243900000011", "alain@exemple.cd",
-                "Avenue Kasa-Vubu N12", "Lubumbashi",
+                agenceParis, agenceLyon, agent, "TRA-2026-TEST01",
+                "Thomas Girard", "+33645678901", "thomas.girard@exemple.fr",
+                "Alice Dubois", "+33656789012", "alice.dubois@exemple.fr",
+                "5 Rue Victor Hugo, 69003 Lyon", "Lyon",
                 "Vetements", new BigDecimal("3.500"),
                 StatutColis.ENREGISTRE
         );
         enregistrerHistorique(colisEnregistre, null, StatutColis.ENREGISTRE,
-                "Agence Kinshasa", "Colis enregistre a la reception", agent);
+                "Agence Paris", "Colis enregistre a la reception", agent);
 
         Colis colisEnTransit = creerColis(
-                agenceKinshasa, agenceGoma, agent, "TRA-2026-TEST02",
-                "Nzinga Sophie", "+243900000012", null,
-                "Lumumba Robert", "+243900000013", "robert@exemple.cd",
-                "Quartier Makutano", "Goma",
+                agenceParis, agenceMarseille, agent, "TRA-2026-TEST02",
+                "Sophie Petit", "+33667890123", null,
+                "Nicolas Roux", "+33678901234", "nicolas.roux@exemple.fr",
+                "22 Rue Paradis, 13006 Marseille", "Marseille",
                 "Materiel informatique - fragile", new BigDecimal("12.000"),
                 StatutColis.EN_TRANSIT
         );
         enregistrerHistorique(colisEnTransit, null, StatutColis.ENREGISTRE,
-                "Agence Kinshasa", null, agent);
+                "Agence Paris", null, agent);
         enregistrerHistorique(colisEnTransit, StatutColis.ENREGISTRE, StatutColis.EN_TRANSIT,
-                "Route Nationale N1", "En route vers Goma", admin);
+                "Autoroute A6", "En route vers Marseille", admin);
 
         Colis colisRetire = creerColis(
-                agenceKinshasa, agenceKinshasa, agent, "TRA-2026-TEST03",
-                "Kasongo Paul", "+243900000014", "paul@exemple.cd",
-                "Mbeki Fatou", "+243900000015", "fatou@exemple.cd",
-                "Avenue du Commerce 5", "Kinshasa",
-                "Medicaments", new BigDecimal("1.200"),
+                agenceParis, agenceParis, agent, "TRA-2026-TEST03",
+                "Claire Fontaine", "+33689012345", "claire.fontaine@exemple.fr",
+                "Hugo Mercier", "+33690123456", "hugo.mercier@exemple.fr",
+                "3 Avenue des Champs-Elysees, 75008 Paris", "Paris",
+                "Documents", new BigDecimal("1.200"),
                 StatutColis.RETIRE
         );
         enregistrerHistorique(colisRetire, null, StatutColis.ENREGISTRE,
-                "Agence Kinshasa", null, agent);
+                "Agence Paris", null, agent);
         enregistrerHistorique(colisRetire, StatutColis.ENREGISTRE, StatutColis.EN_TRANSIT,
-                "Agence Kinshasa", null, admin);
+                "Agence Paris", null, admin);
         enregistrerHistorique(colisRetire, StatutColis.EN_TRANSIT, StatutColis.ARRIVE_AGENCE,
-                "Agence Kinshasa", "Arrive a l'agence de retrait", admin);
+                "Agence Paris", "Arrive a l'agence de retrait", admin);
         enregistrerHistorique(colisRetire, StatutColis.ARRIVE_AGENCE, StatutColis.RETIRE,
-                "Agence Kinshasa", "Retire et signe par le destinataire", agent);
+                "Agence Paris", "Retire et signe par le destinataire", agent);
 
         Colis colisArriveAgence = creerColis(
-                agenceKinshasa, agenceLubumbashi, agent, "TRA-2026-TEST04",
-                "Diallo Ibrahim", "+243900000016", null,
-                "Kone Mariam", "+243900000017", null,
-                "Cite Verte", "Lubumbashi",
+                agenceParis, agenceLyon, agent, "TRA-2026-TEST04",
+                "Laurent Simon", "+33601234567", null,
+                "Emma Michel", "+33612340987", null,
+                "17 Rue Garibaldi, 69006 Lyon", "Lyon",
                 "Equipement electronique", new BigDecimal("8.750"),
                 StatutColis.ARRIVE_AGENCE
         );
         enregistrerHistorique(colisArriveAgence, null, StatutColis.ENREGISTRE,
-                "Agence Kinshasa", null, agent);
+                "Agence Paris", null, agent);
         enregistrerHistorique(colisArriveAgence, StatutColis.ENREGISTRE, StatutColis.EN_TRANSIT,
-                "Route vers Lubumbashi", null, admin);
+                "Autoroute A6", null, admin);
         enregistrerHistorique(colisArriveAgence, StatutColis.EN_TRANSIT, StatutColis.ARRIVE_AGENCE,
-                "Agence Lubumbashi", "Disponible pour retrait", admin);
+                "Agence Lyon", "Disponible pour retrait", admin);
     }
 
     private Colis creerColis(

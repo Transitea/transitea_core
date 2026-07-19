@@ -8,6 +8,7 @@ import com.transitea.entity.enums.StatutColis;
 import com.transitea.entity.enums.StatutNotification;
 import com.transitea.entity.enums.TypeCanal;
 import com.transitea.repository.NotificationRepository;
+import com.transitea.service.WhatsAppService;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,8 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,13 +38,17 @@ class NotificationServiceImplTest {
     private JavaMailSender mailSender;
 
     @Mock
+    private WhatsAppService whatsAppService;
+
+    @Mock
     private NotificationRepository notificationRepository;
 
     @InjectMocks
     private NotificationServiceImpl notificationService;
 
     private Colis colisAvecEmail;
-    private Colis colisSansEmail;
+    private Colis colisAvecTelephoneEtEmail;
+    private Colis colisSansContact;
 
     @BeforeEach
     void initialiser() {
@@ -67,7 +74,19 @@ class NotificationServiceImplTest {
                 .build();
         colisAvecEmail.setId(1L);
 
-        colisSansEmail = Colis.builder()
+        colisAvecTelephoneEtEmail = Colis.builder()
+                .codeTracking("TRA-2026-DEF456")
+                .creePar(agent)
+                .expediteurNom("Jean Dupont")
+                .destinataireNom("Marie Martin")
+                .destinataireTelephone("+243900000011")
+                .destinataireEmail("marie@example.com")
+                .poids(new BigDecimal("2.500"))
+                .statutActuel(StatutColis.ARRIVE_AGENCE)
+                .build();
+        colisAvecTelephoneEtEmail.setId(3L);
+
+        colisSansContact = Colis.builder()
                 .codeTracking("TRA-2026-XYZ999")
                 .creePar(agent)
                 .expediteurNom("Jean Dupont")
@@ -75,8 +94,56 @@ class NotificationServiceImplTest {
                 .poids(new BigDecimal("1.000"))
                 .statutActuel(StatutColis.ARRIVE_AGENCE)
                 .build();
-        colisSansEmail.setId(2L);
+        colisSansContact.setId(2L);
     }
+
+    // --- WhatsApp prioritaire ---
+
+    @Test
+    void doit_privilegier_whatsapp_quand_telephone_present_et_envoi_reussi() {
+        when(whatsAppService.envoyerMessage(anyString(), anyString())).thenReturn(true);
+
+        notificationService.notifierChangementStatut(colisAvecTelephoneEtEmail, StatutColis.ENREGISTRE);
+
+        verify(whatsAppService).envoyerMessage(eq("+243900000011"), anyString());
+        verify(mailSender, never()).createMimeMessage();
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getTypeCanal()).isEqualTo(TypeCanal.WHATSAPP);
+        assertThat(captor.getValue().getStatut()).isEqualTo(StatutNotification.ENVOYE);
+        assertThat(captor.getValue().getDestinataire()).isEqualTo("+243900000011");
+    }
+
+    @Test
+    void doit_replier_sur_email_quand_whatsapp_echoue() {
+        when(whatsAppService.envoyerMessage(anyString(), anyString())).thenReturn(false);
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        notificationService.notifierChangementStatut(colisAvecTelephoneEtEmail, StatutColis.ENREGISTRE);
+
+        verify(whatsAppService).envoyerMessage(anyString(), anyString());
+        verify(mailSender).send(any(MimeMessage.class));
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getTypeCanal()).isEqualTo(TypeCanal.EMAIL);
+        assertThat(captor.getValue().getDestinataire()).isEqualTo("marie@example.com");
+    }
+
+    @Test
+    void doit_ne_pas_appeler_whatsapp_quand_telephone_absent() {
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        notificationService.notifierChangementStatut(colisAvecEmail, StatutColis.ENREGISTRE);
+
+        verify(whatsAppService, never()).envoyerMessage(anyString(), anyString());
+        verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    // --- E-mail (repli) ---
 
     @Test
     void doit_envoyer_email_et_sauvegarder_notification_envoye_quand_email_present() throws Exception {
@@ -98,10 +165,11 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    void doit_ne_pas_envoyer_email_quand_destinataire_sans_email() {
-        notificationService.notifierChangementStatut(colisSansEmail, StatutColis.ENREGISTRE);
+    void doit_ne_rien_envoyer_quand_ni_telephone_ni_email() {
+        notificationService.notifierChangementStatut(colisSansContact, StatutColis.ENREGISTRE);
 
         verify(mailSender, never()).createMimeMessage();
+        verify(whatsAppService, never()).envoyerMessage(anyString(), anyString());
         verify(notificationRepository, never()).save(any());
     }
 
@@ -131,5 +199,29 @@ class NotificationServiceImplTest {
 
         assertThat(captor.getValue().getMessage())
                 .contains("TRA-2026-ABC123");
+    }
+
+    @Test
+    void doit_ignorer_statut_en_transit() {
+        colisAvecEmail.setStatutActuel(StatutColis.EN_TRANSIT);
+
+        notificationService.notifierChangementStatut(colisAvecEmail, StatutColis.ENREGISTRE);
+
+        verify(mailSender, never()).createMimeMessage();
+        verify(whatsAppService, never()).envoyerMessage(anyString(), anyString());
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void doit_notifier_expediteur_quand_colis_retire() {
+        colisAvecEmail.setExpediteurEmail("jean@example.com");
+        colisAvecEmail.setStatutActuel(StatutColis.RETIRE);
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        notificationService.notifierChangementStatut(colisAvecEmail, StatutColis.ARRIVE_AGENCE);
+
+        // 1 notification destinataire + 1 notification expediteur
+        verify(notificationRepository, org.mockito.Mockito.times(2)).save(any(Notification.class));
     }
 }

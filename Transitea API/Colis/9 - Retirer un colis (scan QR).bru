@@ -17,6 +17,9 @@ headers {
 docs {
   Simule le scan du QR code a l'agence de retrait. Le colis doit etre au statut
   ARRIVE_AGENCE pour que le retrait reussisse (sinon 400).
+
+  Seul un ADMIN ou un AGENT/OPERATEUR rattache a l'agence de RETRAIT du colis
+  peut valider ce retrait (403 sinon, meme pour l'agent de l'agence d'origine).
 }
 
 settings {

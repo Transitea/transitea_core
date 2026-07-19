@@ -58,6 +58,9 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
     List<Colis> findByCreeParAndDateCreationBetweenAndSupprimeFalse(
             Utilisateur creePar, LocalDateTime debut, LocalDateTime fin);
 
+    long countByAgenceOrigineAndDateCreationBetweenAndSupprimeFalse(
+            Agence agenceOrigine, LocalDateTime debut, LocalDateTime fin);
+
     @Query("SELECT COUNT(c) FROM Colis c WHERE c.supprime = false " +
            "AND (c.agenceOrigine = :agence OR c.agenceRetrait = :agence) " +
            "AND c.statutActuel = :statut")
