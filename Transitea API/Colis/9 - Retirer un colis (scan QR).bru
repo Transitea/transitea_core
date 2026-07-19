@@ -1,0 +1,24 @@
+meta {
+  name: 9 - Retirer un colis (scan QR)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/v1/colis/retrait?codeTracking={{codeTracking}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+docs {
+  Simule le scan du QR code a l'agence de retrait. Le colis doit etre au statut
+  ARRIVE_AGENCE pour que le retrait reussisse (sinon 400).
+}
+
+settings {
+  encodeUrl: true
+}

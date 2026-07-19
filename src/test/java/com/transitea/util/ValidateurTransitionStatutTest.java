@@ -14,20 +14,11 @@ class ValidateurTransitionStatutTest {
 
     @ParameterizedTest(name = "{0} -> {1} doit etre valide")
     @CsvSource({
-        "ENREGISTRE, PRIS_EN_CHARGE",
+        "ENREGISTRE, EN_TRANSIT",
         "ENREGISTRE, REFUSE",
-        "PRIS_EN_CHARGE, EN_TRANSIT",
-        "PRIS_EN_CHARGE, REFUSE",
-        "EN_TRANSIT, ARRIVE_DEPOT",
-        "EN_TRANSIT, PASSAGE_FRONTIERE",
-        "EN_TRANSIT, EN_DOUANE",
-        "PASSAGE_FRONTIERE, EN_DOUANE",
-        "PASSAGE_FRONTIERE, EN_TRANSIT",
-        "EN_DOUANE, EN_TRANSIT",
-        "EN_DOUANE, ARRIVE_DEPOT",
-        "ARRIVE_DEPOT, EN_LIVRAISON",
-        "EN_LIVRAISON, LIVRE",
-        "EN_LIVRAISON, RETOUR_EXPEDITEUR",
+        "EN_TRANSIT, ARRIVE_AGENCE",
+        "ARRIVE_AGENCE, RETIRE",
+        "ARRIVE_AGENCE, REFUSE",
         "REFUSE, RETOUR_EXPEDITEUR"
     })
     void doit_accepter_les_transitions_autorisees(StatutColis ancien, StatutColis nouveau) {
@@ -37,12 +28,11 @@ class ValidateurTransitionStatutTest {
 
     @ParameterizedTest(name = "{0} -> {1} doit etre invalide")
     @CsvSource({
-        "ENREGISTRE, LIVRE",
-        "ENREGISTRE, EN_TRANSIT",
-        "PRIS_EN_CHARGE, ENREGISTRE",
+        "ENREGISTRE, RETIRE",
+        "ENREGISTRE, ARRIVE_AGENCE",
         "EN_TRANSIT, ENREGISTRE",
-        "ARRIVE_DEPOT, ENREGISTRE",
-        "LIVRE, EN_LIVRAISON",
+        "ARRIVE_AGENCE, ENREGISTRE",
+        "RETIRE, ARRIVE_AGENCE",
         "RETOUR_EXPEDITEUR, ENREGISTRE"
     })
     void doit_lancer_exception_pour_les_transitions_interdites(StatutColis ancien, StatutColis nouveau) {
@@ -51,8 +41,8 @@ class ValidateurTransitionStatutTest {
     }
 
     @Test
-    void doit_retourner_true_pour_statut_livre() {
-        assertThat(ValidateurTransitionStatut.estStatutTerminal(StatutColis.LIVRE)).isTrue();
+    void doit_retourner_true_pour_statut_retire() {
+        assertThat(ValidateurTransitionStatut.estStatutTerminal(StatutColis.RETIRE)).isTrue();
     }
 
     @Test

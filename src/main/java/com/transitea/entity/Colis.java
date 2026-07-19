@@ -39,8 +39,16 @@ public class Colis extends EntiteBase {
     private String qrCodePath;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transporteur_id", nullable = false)
-    private Utilisateur transporteur;
+    @JoinColumn(name = "agence_origine_id", nullable = false)
+    private Agence agenceOrigine;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agence_retrait_id", nullable = false)
+    private Agence agenceRetrait;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cree_par_id", nullable = false)
+    private Utilisateur creePar;
 
     @Column(name = "expediteur_nom", nullable = false)
     private String expediteurNom;

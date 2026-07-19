@@ -5,6 +5,7 @@ import com.transitea.dto.request.MiseAJourStatutRequete;
 import com.transitea.dto.response.ColisReponse;
 import com.transitea.dto.response.ReponsePagee;
 import com.transitea.dto.response.StatistiquesReponse;
+import com.transitea.entity.Agence;
 import com.transitea.entity.Colis;
 import com.transitea.entity.MiseAJourStatut;
 import com.transitea.entity.Utilisateur;
@@ -13,6 +14,7 @@ import com.transitea.entity.enums.StatutColis;
 import com.transitea.exception.AccesNonAutoriseException;
 import com.transitea.exception.EntiteNonTrouveeException;
 import com.transitea.mapper.ColisMapper;
+import com.transitea.repository.AgenceRepository;
 import com.transitea.repository.ColisRepository;
 import com.transitea.repository.MiseAJourStatutRepository;
 import com.transitea.service.ColisService;
@@ -41,6 +43,7 @@ public class ColisServiceImpl implements ColisService {
     private static final int TENTATIVES_MAX_CODE_TRACKING = 5;
 
     private final ColisRepository colisRepository;
+    private final AgenceRepository agenceRepository;
     private final MiseAJourStatutRepository miseAJourStatutRepository;
     private final ColisMapper colisMapper;
     private final QrCodeService qrCodeService;
@@ -51,11 +54,13 @@ public class ColisServiceImpl implements ColisService {
 
     public ColisServiceImpl(
             ColisRepository colisRepository,
+            AgenceRepository agenceRepository,
             MiseAJourStatutRepository miseAJourStatutRepository,
             ColisMapper colisMapper,
             QrCodeService qrCodeService,
             NotificationService notificationService) {
         this.colisRepository = colisRepository;
+        this.agenceRepository = agenceRepository;
         this.miseAJourStatutRepository = miseAJourStatutRepository;
         this.colisMapper = colisMapper;
         this.qrCodeService = qrCodeService;
@@ -63,12 +68,17 @@ public class ColisServiceImpl implements ColisService {
     }
 
     @Override
-    public ColisReponse creer(CreationColisRequete requete, Utilisateur transporteur) {
+    public ColisReponse creer(CreationColisRequete requete, Utilisateur creePar) {
+        Agence agenceOrigine = recupererAgenceOuEchouer(requete.agenceOrigineId());
+        Agence agenceRetrait = recupererAgenceOuEchouer(requete.agenceRetraitId());
+
         String codeTracking = genererCodeTrackingUnique();
 
         Colis colis = Colis.builder()
                 .codeTracking(codeTracking)
-                .transporteur(transporteur)
+                .agenceOrigine(agenceOrigine)
+                .agenceRetrait(agenceRetrait)
+                .creePar(creePar)
                 .expediteurNom(requete.expediteurNom())
                 .expediteurTelephone(requete.expediteurTelephone())
                 .expediteurEmail(requete.expediteurEmail())
@@ -85,7 +95,7 @@ public class ColisServiceImpl implements ColisService {
         Colis colisSauvegarde = colisRepository.save(colis);
 
         enregistrerHistoriqueStatut(
-                colisSauvegarde, null, StatutColis.ENREGISTRE, null, null, transporteur);
+                colisSauvegarde, null, StatutColis.ENREGISTRE, null, null, creePar);
 
         journal.info("Colis cree avec le code : {}", codeTracking);
         return colisMapper.versReponse(colisSauvegarde);
@@ -98,15 +108,15 @@ public class ColisServiceImpl implements ColisService {
 
         Page<Colis> page;
 
-        if (estPrivilegié(utilisateur)) {
+        if (utilisateur.getRole() == Role.ADMIN) {
             page = statut != null
                     ? colisRepository.findByStatutActuelAndSupprimeFalse(statut, pageable)
                     : colisRepository.findBySupprimeFalse(pageable);
         } else {
+            Agence agence = agenceDeLUtilisateur(utilisateur);
             page = statut != null
-                    ? colisRepository.findByTransporteurAndStatutActuelAndSupprimeFalse(
-                            utilisateur, statut, pageable)
-                    : colisRepository.findByTransporteurAndSupprimeFalse(utilisateur, pageable);
+                    ? colisRepository.findByAgenceAndStatutActuelAndSupprimeFalse(agence, statut, pageable)
+                    : colisRepository.findByAgenceAndSupprimeFalse(agence, pageable);
         }
 
         return ReponsePagee.depuis(page.map(colisMapper::versReponse));
@@ -119,10 +129,10 @@ public class ColisServiceImpl implements ColisService {
 
         Page<Colis> page;
 
-        if (estPrivilegié(utilisateur)) {
+        if (utilisateur.getRole() == Role.ADMIN) {
             page = colisRepository.rechercherTous(recherche, pageable);
         } else {
-            page = colisRepository.rechercherParTransporteur(utilisateur, recherche, pageable);
+            page = colisRepository.rechercherParAgence(agenceDeLUtilisateur(utilisateur), recherche, pageable);
         }
 
         return ReponsePagee.depuis(page.map(colisMapper::versReponse));
@@ -143,8 +153,10 @@ public class ColisServiceImpl implements ColisService {
                 reponseBase.id(),
                 reponseBase.uuid(),
                 reponseBase.codeTracking(),
-                reponseBase.transporteurId(),
-                reponseBase.transporteurNomComplet(),
+                reponseBase.agenceOrigineId(),
+                reponseBase.agenceOrigineNom(),
+                reponseBase.agenceRetraitId(),
+                reponseBase.agenceRetraitNom(),
                 reponseBase.expediteurNom(),
                 reponseBase.expediteurTelephone(),
                 reponseBase.expediteurEmail(),
@@ -194,6 +206,31 @@ public class ColisServiceImpl implements ColisService {
     }
 
     @Override
+    public ColisReponse retirer(String codeTracking, Utilisateur utilisateur) {
+        Colis colis = colisRepository.findByCodeTrackingAndSupprimeFalse(codeTracking)
+                .orElseThrow(() -> new EntiteNonTrouveeException("Colis", codeTracking));
+        verifierAcces(colis, utilisateur);
+
+        StatutColis ancienStatut = colis.getStatutActuel();
+        ValidateurTransitionStatut.valider(ancienStatut, StatutColis.RETIRE);
+
+        colis.setStatutActuel(StatutColis.RETIRE);
+        Colis colisRetire = colisRepository.save(colis);
+
+        enregistrerHistoriqueStatut(
+                colisRetire, ancienStatut, StatutColis.RETIRE,
+                colis.getAgenceRetrait().getNom(),
+                "Retrait valide par scan du QR code", utilisateur);
+
+        journal.info("Colis {} retire par scan QR a l'agence {}",
+                colis.getCodeTracking(), colis.getAgenceRetrait().getNom());
+
+        notificationService.notifierChangementStatut(colisRetire, ancienStatut);
+
+        return colisMapper.versReponse(colisRetire);
+    }
+
+    @Override
     public void supprimer(Long id, Utilisateur utilisateur) {
         Colis colis = recupererColisOuEchouer(id);
         verifierAcces(colis, utilisateur);
@@ -219,10 +256,10 @@ public class ColisServiceImpl implements ColisService {
         Map<StatutColis, Long> parStatut = Arrays.stream(StatutColis.values())
                 .collect(Collectors.toMap(
                         statut -> statut,
-                        statut -> estPrivilegié(utilisateur)
+                        statut -> utilisateur.getRole() == Role.ADMIN
                                 ? colisRepository.countByStatutActuelAndSupprimeFalse(statut)
-                                : colisRepository.countByTransporteurAndStatutActuelAndSupprimeFalse(
-                                        utilisateur, statut)
+                                : colisRepository.countByAgenceAndStatutActuelAndSupprimeFalse(
+                                        agenceDeLUtilisateur(utilisateur), statut)
                 ));
 
         long total = parStatut.values().stream().mapToLong(Long::longValue).sum();
@@ -235,15 +272,31 @@ public class ColisServiceImpl implements ColisService {
                 .orElseThrow(() -> new EntiteNonTrouveeException("Colis", id));
     }
 
-    private void verifierAcces(Colis colis, Utilisateur utilisateur) {
-        boolean estProprietaire = colis.getTransporteur().getId().equals(utilisateur.getId());
-        if (!estPrivilegié(utilisateur) && !estProprietaire) {
-            throw new AccesNonAutoriseException();
-        }
+    private Agence recupererAgenceOuEchouer(Long id) {
+        return agenceRepository.findByIdAndSupprimeFalse(id)
+                .orElseThrow(() -> new EntiteNonTrouveeException("Agence", id));
     }
 
-    private boolean estPrivilegié(Utilisateur utilisateur) {
-        return utilisateur.getRole() == Role.ADMIN || utilisateur.getRole() == Role.OPERATEUR;
+    private Agence agenceDeLUtilisateur(Utilisateur utilisateur) {
+        if (utilisateur.getAgence() == null) {
+            throw new AccesNonAutoriseException();
+        }
+        return utilisateur.getAgence();
+    }
+
+    private void verifierAcces(Colis colis, Utilisateur utilisateur) {
+        if (utilisateur.getRole() == Role.ADMIN) {
+            return;
+        }
+
+        Agence agence = agenceDeLUtilisateur(utilisateur);
+        boolean concerneParAgence =
+                colis.getAgenceOrigine().getId().equals(agence.getId())
+                        || colis.getAgenceRetrait().getId().equals(agence.getId());
+
+        if (!concerneParAgence) {
+            throw new AccesNonAutoriseException();
+        }
     }
 
     private void enregistrerHistoriqueStatut(

@@ -2,9 +2,13 @@ package com.transitea.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record InscriptionRequete(
+
+        @NotNull(message = "L'agence de rattachement est obligatoire")
+        Long agenceId,
 
         @NotBlank(message = "Le nom est obligatoire")
         @Size(max = 100, message = "Le nom ne peut pas depasser 100 caracteres")

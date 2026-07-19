@@ -47,17 +47,17 @@ class TrackingServiceImplTest {
 
     @BeforeEach
     void initialiser() {
-        Utilisateur transporteur = Utilisateur.builder()
+        Utilisateur agent = Utilisateur.builder()
                 .nom("Lumbu")
                 .prenom("Louange")
                 .email("louange@transitea.cd")
-                .role(Role.TRANSPORTEUR)
+                .role(Role.AGENT)
                 .build();
-        transporteur.setId(1L);
+        agent.setId(1L);
 
         colis = Colis.builder()
                 .codeTracking("TRA-2026-ABC123")
-                .transporteur(transporteur)
+                .creePar(agent)
                 .expediteurNom("Jean Dupont")
                 .destinataireNom("Marie Martin")
                 .destinataireVille("Lubumbashi")
@@ -91,11 +91,11 @@ class TrackingServiceImplTest {
         MiseAJourStatut maj = MiseAJourStatut.builder()
                 .colis(colis)
                 .statut(StatutColis.EN_TRANSIT)
-                .ancienStatut(StatutColis.PRIS_EN_CHARGE)
+                .ancienStatut(StatutColis.ENREGISTRE)
                 .localisation("Kinshasa")
                 .build();
         MiseAJourStatutReponse majReponse = new MiseAJourStatutReponse(
-                1L, StatutColis.EN_TRANSIT, StatutColis.PRIS_EN_CHARGE,
+                1L, StatutColis.EN_TRANSIT, StatutColis.ENREGISTRE,
                 "Kinshasa", null, 1L, null);
 
         when(colisRepository.findByCodeTrackingAndSupprimeFalse("TRA-2026-ABC123"))

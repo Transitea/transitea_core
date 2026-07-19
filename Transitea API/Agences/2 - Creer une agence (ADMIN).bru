@@ -1,0 +1,32 @@
+meta {
+  name: 2 - Creer une agence (ADMIN)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/agences
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "nom": "Agence Matadi",
+    "ville": "Matadi",
+    "adresse": "Boulevard du 30 Juin"
+  }
+}
+
+docs {
+  Reserve au role ADMIN. Doit retourner 403 pour OPERATEUR ou AGENT.
+}
+
+settings {
+  encodeUrl: true
+}

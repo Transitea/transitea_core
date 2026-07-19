@@ -24,8 +24,12 @@ import java.time.LocalDateTime;
 public class SyncLog extends EntiteBase {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transporteur_id", nullable = false)
-    private Utilisateur transporteur;
+    @JoinColumn(name = "utilisateur_id", nullable = false)
+    private Utilisateur utilisateur;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agence_id")
+    private Agence agence;
 
     @Column(name = "nb_colis_envoyes", nullable = false)
     @Builder.Default

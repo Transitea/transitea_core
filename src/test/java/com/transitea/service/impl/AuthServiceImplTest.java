@@ -5,11 +5,13 @@ import com.transitea.dto.request.InscriptionRequete;
 import com.transitea.dto.request.RafraichissementRequete;
 import com.transitea.dto.response.AuthReponse;
 import com.transitea.dto.response.UtilisateurReponse;
+import com.transitea.entity.Agence;
 import com.transitea.entity.RefreshToken;
 import com.transitea.entity.Utilisateur;
 import com.transitea.entity.enums.Role;
 import com.transitea.exception.ErreurMetier;
 import com.transitea.exception.TokenInvalideException;
+import com.transitea.repository.AgenceRepository;
 import com.transitea.repository.RefreshTokenRepository;
 import com.transitea.repository.UtilisateurRepository;
 import com.transitea.security.ProprietesJwt;
@@ -44,6 +46,9 @@ class AuthServiceImplTest {
     private UtilisateurRepository utilisateurRepository;
 
     @Mock
+    private AgenceRepository agenceRepository;
+
+    @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
@@ -62,17 +67,22 @@ class AuthServiceImplTest {
     private AuthServiceImpl authService;
 
     private Utilisateur utilisateur;
+    private Agence agence;
     private RefreshToken refreshTokenValide;
 
     @BeforeEach
     void initialiser() {
+        agence = Agence.builder().nom("Agence Kinshasa").ville("Kinshasa").build();
+        agence.setId(1L);
+
         utilisateur = Utilisateur.builder()
                 .nom("Lumbu")
                 .prenom("Louange")
                 .email("louange@transitea.cd")
                 .telephone("0812345678")
                 .motDePasseHash("hash_mot_de_passe")
-                .role(Role.TRANSPORTEUR)
+                .role(Role.AGENT)
+                .agence(agence)
                 .build();
         utilisateur.setId(1L);
 
@@ -89,10 +99,11 @@ class AuthServiceImplTest {
     @Test
     void doit_creer_utilisateur_et_retourner_tokens_quand_email_disponible() {
         InscriptionRequete requete = new InscriptionRequete(
-                "Lumbu", "Louange", "louange@transitea.cd",
+                1L, "Lumbu", "Louange", "louange@transitea.cd",
                 "0812345678", "MotDePasse123!");
         when(utilisateurRepository.existsByEmail(requete.email())).thenReturn(false);
         when(utilisateurRepository.existsByTelephone(requete.telephone())).thenReturn(false);
+        when(agenceRepository.findByIdAndSupprimeFalse(1L)).thenReturn(Optional.of(agence));
         when(encodeurMotDePasse.encode(anyString())).thenReturn("hash_mot_de_passe");
         when(utilisateurRepository.save(any(Utilisateur.class))).thenReturn(utilisateur);
         when(serviceJwt.genererAccessToken(any())).thenReturn("access-token");
@@ -108,13 +119,13 @@ class AuthServiceImplTest {
 
         ArgumentCaptor<Utilisateur> captor = ArgumentCaptor.forClass(Utilisateur.class);
         verify(utilisateurRepository).save(captor.capture());
-        assertThat(captor.getValue().getRole()).isEqualTo(Role.TRANSPORTEUR);
+        assertThat(captor.getValue().getRole()).isEqualTo(Role.AGENT);
     }
 
     @Test
     void doit_lancer_erreur_metier_quand_email_deja_utilise() {
         InscriptionRequete requete = new InscriptionRequete(
-                "Lumbu", "Louange", "louange@transitea.cd",
+                1L, "Lumbu", "Louange", "louange@transitea.cd",
                 null, "MotDePasse123!");
         when(utilisateurRepository.existsByEmail(requete.email())).thenReturn(true);
 
@@ -128,7 +139,7 @@ class AuthServiceImplTest {
     @Test
     void doit_lancer_erreur_metier_quand_telephone_deja_utilise() {
         InscriptionRequete requete = new InscriptionRequete(
-                "Lumbu", "Louange", "nouveau@transitea.cd",
+                1L, "Lumbu", "Louange", "nouveau@transitea.cd",
                 "0812345678", "MotDePasse123!");
         when(utilisateurRepository.existsByEmail(requete.email())).thenReturn(false);
         when(utilisateurRepository.existsByTelephone(requete.telephone())).thenReturn(true);
@@ -269,6 +280,6 @@ class AuthServiceImplTest {
 
         assertThat(reponse.email()).isEqualTo("louange@transitea.cd");
         assertThat(reponse.nom()).isEqualTo("Lumbu");
-        assertThat(reponse.role()).isEqualTo(Role.TRANSPORTEUR);
+        assertThat(reponse.role()).isEqualTo(Role.AGENT);
     }
 }

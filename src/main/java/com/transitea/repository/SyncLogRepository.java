@@ -14,7 +14,7 @@ import java.util.List;
 @Repository
 public interface SyncLogRepository extends JpaRepository<SyncLog, Long> {
 
-    List<SyncLog> findByTransporteurOrderByDateCreationDesc(Utilisateur transporteur);
+    List<SyncLog> findByUtilisateurOrderByDateCreationDesc(Utilisateur utilisateur);
 
     @Modifying
     @Query("DELETE FROM SyncLog s WHERE s.dateCreation < :dateLimite")

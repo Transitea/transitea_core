@@ -5,6 +5,7 @@ import com.transitea.dto.request.MiseAJourStatutRequete;
 import com.transitea.dto.response.ColisReponse;
 import com.transitea.dto.response.ReponsePagee;
 import com.transitea.dto.response.StatistiquesReponse;
+import com.transitea.entity.Agence;
 import com.transitea.entity.Colis;
 import com.transitea.entity.MiseAJourStatut;
 import com.transitea.entity.Utilisateur;
@@ -14,6 +15,7 @@ import com.transitea.exception.AccesNonAutoriseException;
 import com.transitea.exception.EntiteNonTrouveeException;
 import com.transitea.exception.TransitionStatutInvalideException;
 import com.transitea.mapper.ColisMapper;
+import com.transitea.repository.AgenceRepository;
 import com.transitea.repository.ColisRepository;
 import com.transitea.repository.MiseAJourStatutRepository;
 import com.transitea.service.NotificationService;
@@ -51,6 +53,9 @@ class ColisServiceImplTest {
     private ColisRepository colisRepository;
 
     @Mock
+    private AgenceRepository agenceRepository;
+
+    @Mock
     private MiseAJourStatutRepository miseAJourStatutRepository;
 
     @Mock
@@ -65,8 +70,11 @@ class ColisServiceImplTest {
     @InjectMocks
     private ColisServiceImpl colisService;
 
-    private Utilisateur transporteur;
-    private Utilisateur autreTransporteur;
+    private Agence agenceKinshasa;
+    private Agence agenceGoma;
+    private Agence agenceLubumbashi;
+    private Utilisateur agent;
+    private Utilisateur autreAgent;
     private Utilisateur admin;
     private Utilisateur operateur;
     private Colis colis;
@@ -76,21 +84,32 @@ class ColisServiceImplTest {
     void initialiser() {
         ReflectionTestUtils.setField(colisService, "baseUrl", "http://localhost:8080");
 
-        transporteur = Utilisateur.builder()
+        agenceKinshasa = Agence.builder().nom("Agence Kinshasa").ville("Kinshasa").build();
+        agenceKinshasa.setId(1L);
+
+        agenceGoma = Agence.builder().nom("Agence Goma").ville("Goma").build();
+        agenceGoma.setId(2L);
+
+        agenceLubumbashi = Agence.builder().nom("Agence Lubumbashi").ville("Lubumbashi").build();
+        agenceLubumbashi.setId(3L);
+
+        agent = Utilisateur.builder()
                 .nom("Lumbu")
                 .prenom("Louange")
                 .email("louange@transitea.cd")
-                .role(Role.TRANSPORTEUR)
+                .role(Role.AGENT)
+                .agence(agenceKinshasa)
                 .build();
-        transporteur.setId(1L);
+        agent.setId(1L);
 
-        autreTransporteur = Utilisateur.builder()
+        autreAgent = Utilisateur.builder()
                 .nom("Autre")
-                .prenom("Transporteur")
+                .prenom("Agent")
                 .email("autre@transitea.cd")
-                .role(Role.TRANSPORTEUR)
+                .role(Role.AGENT)
+                .agence(agenceLubumbashi)
                 .build();
-        autreTransporteur.setId(2L);
+        autreAgent.setId(2L);
 
         admin = Utilisateur.builder()
                 .nom("Admin")
@@ -105,12 +124,15 @@ class ColisServiceImplTest {
                 .prenom("Pierre")
                 .email("operateur@transitea.cd")
                 .role(Role.OPERATEUR)
+                .agence(agenceKinshasa)
                 .build();
         operateur.setId(4L);
 
         colis = Colis.builder()
                 .codeTracking("TRA-2026-ABC123")
-                .transporteur(transporteur)
+                .agenceOrigine(agenceKinshasa)
+                .agenceRetrait(agenceGoma)
+                .creePar(agent)
                 .expediteurNom("Jean Dupont")
                 .destinataireNom("Marie Martin")
                 .poids(new BigDecimal("2.500"))
@@ -119,7 +141,7 @@ class ColisServiceImplTest {
 
         colisReponse = new ColisReponse(
                 10L, "uuid-test", "TRA-2026-ABC123",
-                1L, "Louange Lumbu",
+                1L, "Agence Kinshasa", 2L, "Agence Goma",
                 "Jean Dupont", null, null,
                 "Marie Martin", null, null, null, null,
                 null, new BigDecimal("2.500"),
@@ -132,17 +154,20 @@ class ColisServiceImplTest {
     @Test
     void doit_sauvegarder_colis_et_enregistrer_historique_quand_requete_valide() {
         CreationColisRequete requete = new CreationColisRequete(
+                1L, 2L,
                 "Jean Dupont", "0812345678", null,
                 "Marie Martin", "0812345679", null,
                 "123 Rue Principale", "Kinshasa",
                 "Documents", new BigDecimal("2.500"), null
         );
+        when(agenceRepository.findByIdAndSupprimeFalse(1L)).thenReturn(Optional.of(agenceKinshasa));
+        when(agenceRepository.findByIdAndSupprimeFalse(2L)).thenReturn(Optional.of(agenceGoma));
         when(colisRepository.findByCodeTrackingAndSupprimeFalse(anyString()))
                 .thenReturn(Optional.empty());
         when(colisRepository.save(any(Colis.class))).thenReturn(colis);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
 
-        ColisReponse resultat = colisService.creer(requete, transporteur);
+        ColisReponse resultat = colisService.creer(requete, agent);
 
         assertThat(resultat).isNotNull();
         assertThat(resultat.codeTracking()).isEqualTo("TRA-2026-ABC123");
@@ -153,13 +178,15 @@ class ColisServiceImplTest {
     @Test
     void doit_lancer_exception_quand_code_tracking_non_unique_apres_max_tentatives() {
         CreationColisRequete requete = new CreationColisRequete(
-                "Jean", null, null, "Marie", null, null,
+                1L, 2L, "Jean", null, null, "Marie", null, null,
                 null, null, null, null, null
         );
+        when(agenceRepository.findByIdAndSupprimeFalse(1L)).thenReturn(Optional.of(agenceKinshasa));
+        when(agenceRepository.findByIdAndSupprimeFalse(2L)).thenReturn(Optional.of(agenceGoma));
         when(colisRepository.findByCodeTrackingAndSupprimeFalse(anyString()))
                 .thenReturn(Optional.of(colis));
 
-        assertThatThrownBy(() -> colisService.creer(requete, transporteur))
+        assertThatThrownBy(() -> colisService.creer(requete, agent))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Impossible de generer un code tracking unique");
 
@@ -169,36 +196,36 @@ class ColisServiceImplTest {
     // --- lister ---
 
     @Test
-    void doit_retourner_tous_les_colis_quand_statut_null_et_transporteur() {
+    void doit_retourner_les_colis_de_lagence_quand_statut_null_et_agent() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Colis> page = new PageImpl<>(List.of(colis));
-        when(colisRepository.findByTransporteurAndSupprimeFalse(transporteur, pageable))
+        when(colisRepository.findByAgenceAndSupprimeFalse(agenceKinshasa, pageable))
                 .thenReturn(page);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
 
-        ReponsePagee<ColisReponse> resultat = colisService.lister(transporteur, null, pageable);
+        ReponsePagee<ColisReponse> resultat = colisService.lister(agent, null, pageable);
 
         assertThat(resultat.contenu()).hasSize(1);
-        verify(colisRepository).findByTransporteurAndSupprimeFalse(transporteur, pageable);
+        verify(colisRepository).findByAgenceAndSupprimeFalse(agenceKinshasa, pageable);
         verify(colisRepository, never()).findBySupprimeFalse(any());
     }
 
     @Test
-    void doit_filtrer_par_statut_quand_statut_fourni_et_transporteur() {
+    void doit_filtrer_par_statut_quand_statut_fourni_et_agent() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Colis> page = new PageImpl<>(List.of(colis));
-        when(colisRepository.findByTransporteurAndStatutActuelAndSupprimeFalse(
-                transporteur, StatutColis.ENREGISTRE, pageable))
+        when(colisRepository.findByAgenceAndStatutActuelAndSupprimeFalse(
+                agenceKinshasa, StatutColis.ENREGISTRE, pageable))
                 .thenReturn(page);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
 
         ReponsePagee<ColisReponse> resultat =
-                colisService.lister(transporteur, StatutColis.ENREGISTRE, pageable);
+                colisService.lister(agent, StatutColis.ENREGISTRE, pageable);
 
         assertThat(resultat.contenu()).hasSize(1);
-        verify(colisRepository).findByTransporteurAndStatutActuelAndSupprimeFalse(
-                transporteur, StatutColis.ENREGISTRE, pageable);
-        verify(colisRepository, never()).findByTransporteurAndSupprimeFalse(any(), any());
+        verify(colisRepository).findByAgenceAndStatutActuelAndSupprimeFalse(
+                agenceKinshasa, StatutColis.ENREGISTRE, pageable);
+        verify(colisRepository, never()).findByAgenceAndSupprimeFalse(any(), any());
     }
 
     @Test
@@ -212,36 +239,36 @@ class ColisServiceImplTest {
 
         assertThat(resultat.contenu()).hasSize(1);
         verify(colisRepository).findBySupprimeFalse(pageable);
-        verify(colisRepository, never()).findByTransporteurAndSupprimeFalse(any(), any());
+        verify(colisRepository, never()).findByAgenceAndSupprimeFalse(any(), any());
     }
 
     @Test
-    void doit_retourner_tous_les_colis_quand_operateur_liste() {
+    void doit_retourner_les_colis_de_lagence_quand_operateur_liste() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Colis> page = new PageImpl<>(List.of(colis));
-        when(colisRepository.findBySupprimeFalse(pageable)).thenReturn(page);
+        when(colisRepository.findByAgenceAndSupprimeFalse(agenceKinshasa, pageable)).thenReturn(page);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
 
         ReponsePagee<ColisReponse> resultat = colisService.lister(operateur, null, pageable);
 
         assertThat(resultat.contenu()).hasSize(1);
-        verify(colisRepository).findBySupprimeFalse(pageable);
+        verify(colisRepository).findByAgenceAndSupprimeFalse(agenceKinshasa, pageable);
     }
 
     // --- rechercher ---
 
     @Test
-    void doit_rechercher_dans_ses_colis_quand_transporteur() {
+    void doit_rechercher_dans_son_agence_quand_agent() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Colis> page = new PageImpl<>(List.of(colis));
-        when(colisRepository.rechercherParTransporteur(transporteur, "Marie", pageable))
+        when(colisRepository.rechercherParAgence(agenceKinshasa, "Marie", pageable))
                 .thenReturn(page);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
 
-        ReponsePagee<ColisReponse> resultat = colisService.rechercher(transporteur, "Marie", pageable);
+        ReponsePagee<ColisReponse> resultat = colisService.rechercher(agent, "Marie", pageable);
 
         assertThat(resultat.contenu()).hasSize(1);
-        verify(colisRepository).rechercherParTransporteur(transporteur, "Marie", pageable);
+        verify(colisRepository).rechercherParAgence(agenceKinshasa, "Marie", pageable);
         verify(colisRepository, never()).rechercherTous(anyString(), any());
     }
 
@@ -256,33 +283,33 @@ class ColisServiceImplTest {
 
         assertThat(resultat.contenu()).hasSize(1);
         verify(colisRepository).rechercherTous("Marie", pageable);
-        verify(colisRepository, never()).rechercherParTransporteur(any(), anyString(), any());
+        verify(colisRepository, never()).rechercherParAgence(any(), anyString(), any());
     }
 
     @Test
-    void doit_rechercher_dans_tous_les_colis_quand_operateur() {
+    void doit_rechercher_dans_son_agence_quand_operateur() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Colis> page = new PageImpl<>(List.of(colis));
-        when(colisRepository.rechercherTous("TRA-2026", pageable)).thenReturn(page);
+        when(colisRepository.rechercherParAgence(agenceKinshasa, "TRA-2026", pageable)).thenReturn(page);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
 
         ReponsePagee<ColisReponse> resultat = colisService.rechercher(operateur, "TRA-2026", pageable);
 
         assertThat(resultat.contenu()).hasSize(1);
-        verify(colisRepository).rechercherTous("TRA-2026", pageable);
+        verify(colisRepository).rechercherParAgence(agenceKinshasa, "TRA-2026", pageable);
     }
 
     // --- trouverParId ---
 
     @Test
-    void doit_retourner_colis_quand_il_appartient_au_transporteur() {
+    void doit_retourner_colis_quand_il_concerne_lagence_de_lagent() {
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(miseAJourStatutRepository.findByColisOrderByDateCreationAsc(colis))
                 .thenReturn(List.of());
         when(colisMapper.versReponse(colis)).thenReturn(colisReponse);
         when(colisMapper.versMiseAJourReponses(any())).thenReturn(List.of());
 
-        ColisReponse resultat = colisService.trouverParId(10L, transporteur);
+        ColisReponse resultat = colisService.trouverParId(10L, agent);
 
         assertThat(resultat).isNotNull();
         assertThat(resultat.id()).isEqualTo(10L);
@@ -302,7 +329,7 @@ class ColisServiceImplTest {
     }
 
     @Test
-    void doit_autoriser_operateur_pour_nimporte_quel_colis() {
+    void doit_autoriser_operateur_de_lagence_concernee() {
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(miseAJourStatutRepository.findByColisOrderByDateCreationAsc(colis))
                 .thenReturn(List.of());
@@ -318,15 +345,15 @@ class ColisServiceImplTest {
     void doit_lancer_entite_non_trouvee_exception_quand_colis_inexistant() {
         when(colisRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> colisService.trouverParId(99L, transporteur))
+        assertThatThrownBy(() -> colisService.trouverParId(99L, agent))
                 .isInstanceOf(EntiteNonTrouveeException.class);
     }
 
     @Test
-    void doit_lancer_acces_non_autorise_exception_quand_transporteur_non_proprietaire() {
+    void doit_lancer_acces_non_autorise_exception_quand_agent_dune_autre_agence() {
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
 
-        assertThatThrownBy(() -> colisService.trouverParId(10L, autreTransporteur))
+        assertThatThrownBy(() -> colisService.trouverParId(10L, autreAgent))
                 .isInstanceOf(AccesNonAutoriseException.class);
     }
 
@@ -335,23 +362,23 @@ class ColisServiceImplTest {
     @Test
     void doit_mettre_a_jour_statut_quand_transition_valide() {
         MiseAJourStatutRequete requete = new MiseAJourStatutRequete(
-                StatutColis.PRIS_EN_CHARGE, "Kinshasa", "Prise en charge");
+                StatutColis.EN_TRANSIT, "Kinshasa", "Prise en charge");
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(colisRepository.save(any(Colis.class))).thenReturn(colis);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
 
-        colisService.mettreAJourStatut(10L, requete, transporteur);
+        colisService.mettreAJourStatut(10L, requete, agent);
 
         ArgumentCaptor<MiseAJourStatut> captor = ArgumentCaptor.forClass(MiseAJourStatut.class);
         verify(miseAJourStatutRepository).save(captor.capture());
-        assertThat(captor.getValue().getStatut()).isEqualTo(StatutColis.PRIS_EN_CHARGE);
+        assertThat(captor.getValue().getStatut()).isEqualTo(StatutColis.EN_TRANSIT);
         assertThat(captor.getValue().getAncienStatut()).isEqualTo(StatutColis.ENREGISTRE);
     }
 
     @Test
     void doit_autoriser_operateur_a_mettre_a_jour_statut() {
         MiseAJourStatutRequete requete = new MiseAJourStatutRequete(
-                StatutColis.PRIS_EN_CHARGE, "Kinshasa", null);
+                StatutColis.EN_TRANSIT, "Kinshasa", null);
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(colisRepository.save(any(Colis.class))).thenReturn(colis);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
@@ -364,33 +391,61 @@ class ColisServiceImplTest {
     @Test
     void doit_lancer_exception_quand_transition_statut_interdite() {
         MiseAJourStatutRequete requete = new MiseAJourStatutRequete(
-                StatutColis.LIVRE, null, null);
+                StatutColis.RETIRE, null, null);
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
 
-        assertThatThrownBy(() -> colisService.mettreAJourStatut(10L, requete, transporteur))
+        assertThatThrownBy(() -> colisService.mettreAJourStatut(10L, requete, agent))
                 .isInstanceOf(TransitionStatutInvalideException.class);
 
         verify(colisRepository, never()).save(any());
     }
 
     @Test
-    void doit_lancer_acces_non_autorise_exception_quand_mise_a_jour_par_non_proprietaire() {
+    void doit_lancer_acces_non_autorise_exception_quand_mise_a_jour_par_agent_dune_autre_agence() {
         MiseAJourStatutRequete requete = new MiseAJourStatutRequete(
-                StatutColis.PRIS_EN_CHARGE, null, null);
+                StatutColis.EN_TRANSIT, null, null);
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
 
-        assertThatThrownBy(() -> colisService.mettreAJourStatut(10L, requete, autreTransporteur))
+        assertThatThrownBy(() -> colisService.mettreAJourStatut(10L, requete, autreAgent))
                 .isInstanceOf(AccesNonAutoriseException.class);
+    }
+
+    // --- retirer ---
+
+    @Test
+    void doit_retirer_colis_arrive_a_lagence() {
+        colis.setStatutActuel(StatutColis.ARRIVE_AGENCE);
+        when(colisRepository.findByCodeTrackingAndSupprimeFalse("TRA-2026-ABC123"))
+                .thenReturn(Optional.of(colis));
+        when(colisRepository.save(any(Colis.class))).thenReturn(colis);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        colisService.retirer("TRA-2026-ABC123", agent);
+
+        ArgumentCaptor<Colis> captor = ArgumentCaptor.forClass(Colis.class);
+        verify(colisRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatutActuel()).isEqualTo(StatutColis.RETIRE);
+        verify(notificationService).notifierChangementStatut(any(Colis.class), any());
+    }
+
+    @Test
+    void doit_lancer_exception_quand_retrait_sur_statut_non_arrive() {
+        colis.setStatutActuel(StatutColis.ENREGISTRE);
+        when(colisRepository.findByCodeTrackingAndSupprimeFalse("TRA-2026-ABC123"))
+                .thenReturn(Optional.of(colis));
+
+        assertThatThrownBy(() -> colisService.retirer("TRA-2026-ABC123", agent))
+                .isInstanceOf(TransitionStatutInvalideException.class);
     }
 
     // --- supprimer ---
 
     @Test
-    void doit_appliquer_soft_delete_quand_proprietaire() {
+    void doit_appliquer_soft_delete_quand_agent_de_lagence_concernee() {
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(colisRepository.save(any(Colis.class))).thenReturn(colis);
 
-        colisService.supprimer(10L, transporteur);
+        colisService.supprimer(10L, agent);
 
         ArgumentCaptor<Colis> captor = ArgumentCaptor.forClass(Colis.class);
         verify(colisRepository).save(captor.capture());
@@ -398,10 +453,10 @@ class ColisServiceImplTest {
     }
 
     @Test
-    void doit_lancer_acces_non_autorise_exception_quand_suppression_par_non_proprietaire() {
+    void doit_lancer_acces_non_autorise_exception_quand_suppression_par_agent_dune_autre_agence() {
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
 
-        assertThatThrownBy(() -> colisService.supprimer(10L, autreTransporteur))
+        assertThatThrownBy(() -> colisService.supprimer(10L, autreAgent))
                 .isInstanceOf(AccesNonAutoriseException.class);
 
         verify(colisRepository, never()).save(any());
@@ -412,7 +467,7 @@ class ColisServiceImplTest {
         colis.setSupprime(true);
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
 
-        assertThatThrownBy(() -> colisService.supprimer(10L, transporteur))
+        assertThatThrownBy(() -> colisService.supprimer(10L, agent))
                 .isInstanceOf(EntiteNonTrouveeException.class);
     }
 
@@ -427,7 +482,7 @@ class ColisServiceImplTest {
     }
 
     @Test
-    void doit_autoriser_operateur_a_supprimer_nimporte_quel_colis() {
+    void doit_autoriser_operateur_a_supprimer_colis_de_son_agence() {
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(colisRepository.save(any(Colis.class))).thenReturn(colis);
 
@@ -439,13 +494,13 @@ class ColisServiceImplTest {
     // --- genererQrCode ---
 
     @Test
-    void doit_generer_qrcode_quand_proprietaire() {
+    void doit_generer_qrcode_quand_agent_de_lagence_concernee() {
         byte[] qrCodeBytes = new byte[]{1, 2, 3};
         String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(qrCodeService.generer(urlTracking)).thenReturn(qrCodeBytes);
 
-        byte[] resultat = colisService.genererQrCode(10L, transporteur);
+        byte[] resultat = colisService.genererQrCode(10L, agent);
 
         assertThat(resultat).isEqualTo(qrCodeBytes);
         verify(qrCodeService).generer(urlTracking);
@@ -464,7 +519,7 @@ class ColisServiceImplTest {
     }
 
     @Test
-    void doit_generer_qrcode_quand_operateur() {
+    void doit_generer_qrcode_quand_operateur_de_lagence_concernee() {
         byte[] qrCodeBytes = new byte[]{1, 2, 3};
         String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
@@ -476,10 +531,10 @@ class ColisServiceImplTest {
     }
 
     @Test
-    void doit_lancer_acces_non_autorise_exception_quand_qrcode_demande_par_non_proprietaire() {
+    void doit_lancer_acces_non_autorise_exception_quand_qrcode_demande_par_agent_dune_autre_agence() {
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
 
-        assertThatThrownBy(() -> colisService.genererQrCode(10L, autreTransporteur))
+        assertThatThrownBy(() -> colisService.genererQrCode(10L, autreAgent))
                 .isInstanceOf(AccesNonAutoriseException.class);
 
         verify(qrCodeService, never()).generer(anyString());
@@ -489,18 +544,18 @@ class ColisServiceImplTest {
     void doit_lancer_entite_non_trouvee_exception_quand_qrcode_pour_colis_inexistant() {
         when(colisRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> colisService.genererQrCode(99L, transporteur))
+        assertThatThrownBy(() -> colisService.genererQrCode(99L, agent))
                 .isInstanceOf(EntiteNonTrouveeException.class);
     }
 
     // --- obtenirStatistiques ---
 
     @Test
-    void doit_compter_par_statut_pour_transporteur() {
-        when(colisRepository.countByTransporteurAndStatutActuelAndSupprimeFalse(
+    void doit_compter_par_statut_pour_lagence_de_lagent() {
+        when(colisRepository.countByAgenceAndStatutActuelAndSupprimeFalse(
                 any(), any())).thenReturn(2L);
 
-        StatistiquesReponse resultat = colisService.obtenirStatistiques(transporteur);
+        StatistiquesReponse resultat = colisService.obtenirStatistiques(agent);
 
         assertThat(resultat).isNotNull();
         assertThat(resultat.parStatut()).containsKey(StatutColis.ENREGISTRE);
@@ -517,17 +572,17 @@ class ColisServiceImplTest {
         assertThat(resultat).isNotNull();
         assertThat(resultat.parStatut()).containsKey(StatutColis.EN_TRANSIT);
         verify(colisRepository, never())
-                .countByTransporteurAndStatutActuelAndSupprimeFalse(any(), any());
+                .countByAgenceAndStatutActuelAndSupprimeFalse(any(), any());
     }
 
     @Test
-    void doit_compter_tous_les_colis_par_statut_pour_operateur() {
-        when(colisRepository.countByStatutActuelAndSupprimeFalse(any())).thenReturn(1L);
+    void doit_compter_par_statut_pour_lagence_de_loperateur() {
+        when(colisRepository.countByAgenceAndStatutActuelAndSupprimeFalse(any(), any())).thenReturn(1L);
 
         StatistiquesReponse resultat = colisService.obtenirStatistiques(operateur);
 
         assertThat(resultat.parStatut()).hasSize(StatutColis.values().length);
         verify(colisRepository, never())
-                .countByTransporteurAndStatutActuelAndSupprimeFalse(any(), any());
+                .countByStatutActuelAndSupprimeFalse(any());
     }
 }

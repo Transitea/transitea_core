@@ -2,11 +2,18 @@ package com.transitea.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
 public record CreationColisRequete(
+
+        @NotNull(message = "L'agence d'origine est obligatoire")
+        Long agenceOrigineId,
+
+        @NotNull(message = "L'agence de retrait est obligatoire")
+        Long agenceRetraitId,
 
         @NotBlank(message = "Le nom de l'expediteur est obligatoire")
         @Size(max = 100, message = "Le nom de l'expediteur ne peut pas depasser 100 caracteres")
