@@ -6,5 +6,5 @@ import com.transitea.entity.Utilisateur;
 
 public interface SyncService {
 
-    SyncReponse synchroniser(SyncRequete requete, Utilisateur transporteur);
+    SyncReponse synchroniser(SyncRequete requete, Utilisateur utilisateur);
 }

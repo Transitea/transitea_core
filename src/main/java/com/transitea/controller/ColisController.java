@@ -109,6 +109,14 @@ public class ColisController {
         return ResponseEntity.ok(colisService.mettreAJourStatut(id, requete, utilisateurConnecte));
     }
 
+    @PostMapping("/retrait")
+    public ResponseEntity<ColisReponse> retirer(
+            @RequestParam String codeTracking,
+            @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
+
+        return ResponseEntity.ok(colisService.retirer(codeTracking, utilisateurConnecte));
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(

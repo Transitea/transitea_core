@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface ColisService {
 
-    ColisReponse creer(CreationColisRequete requete, Utilisateur transporteur);
+    ColisReponse creer(CreationColisRequete requete, Utilisateur creePar);
 
     ReponsePagee<ColisReponse> lister(Utilisateur utilisateur, StatutColis statut, Pageable pageable);
 
@@ -20,6 +20,8 @@ public interface ColisService {
     ColisReponse trouverParId(Long id, Utilisateur utilisateur);
 
     ColisReponse mettreAJourStatut(Long id, MiseAJourStatutRequete requete, Utilisateur utilisateur);
+
+    ColisReponse retirer(String codeTracking, Utilisateur utilisateur);
 
     void supprimer(Long id, Utilisateur utilisateur);
 

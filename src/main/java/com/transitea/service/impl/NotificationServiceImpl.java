@@ -41,6 +41,20 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Async
     public void notifierChangementStatut(Colis colis, StatutColis ancienStatut) {
+        if (colis.getStatutActuel() == StatutColis.EN_TRANSIT) {
+            journal.debug("Pas de notification pour le statut interne EN_TRANSIT (colis {})",
+                    colis.getCodeTracking());
+            return;
+        }
+
+        notifierDestinataire(colis, ancienStatut);
+
+        if (colis.getStatutActuel() == StatutColis.RETIRE) {
+            notifierExpediteur(colis);
+        }
+    }
+
+    private void notifierDestinataire(Colis colis, StatutColis ancienStatut) {
         String destinataireEmail = colis.getDestinataireEmail();
 
         if (destinataireEmail == null || destinataireEmail.isBlank()) {
@@ -72,6 +86,43 @@ public class NotificationServiceImpl implements NotificationService {
             notification.setStatut(StatutNotification.ECHEC);
             notification.setNbTentatives(1);
             journal.error("Echec envoi email pour le colis {} : {}",
+                    colis.getCodeTracking(), e.getMessage());
+        }
+
+        notificationRepository.save(notification);
+    }
+
+    private void notifierExpediteur(Colis colis) {
+        String expediteurEmailDestinataire = colis.getExpediteurEmail();
+
+        if (expediteurEmailDestinataire == null || expediteurEmailDestinataire.isBlank()) {
+            journal.debug("Pas de notification retrait : email expediteur absent pour le colis {}",
+                    colis.getCodeTracking());
+            return;
+        }
+
+        Notification notification = Notification.builder()
+                .colis(colis)
+                .destinataire(expediteurEmailDestinataire)
+                .typeCanal(TypeCanal.EMAIL)
+                .message("Colis " + colis.getCodeTracking() + " retire par le destinataire")
+                .build();
+
+        try {
+            envoyerEmail(
+                    expediteurEmailDestinataire,
+                    "Votre colis " + colis.getCodeTracking() + " a ete retire",
+                    "<p>Bonjour,</p><p>Votre colis <strong>" + colis.getCodeTracking()
+                            + "</strong> a bien ete retire par le destinataire.</p>"
+            );
+            notification.setStatut(StatutNotification.ENVOYE);
+            notification.setNbTentatives(1);
+            journal.info("Notification de retrait envoyee a l'expediteur pour le colis {}",
+                    colis.getCodeTracking());
+        } catch (Exception e) {
+            notification.setStatut(StatutNotification.ECHEC);
+            notification.setNbTentatives(1);
+            journal.error("Echec notification retrait pour le colis {} : {}",
                     colis.getCodeTracking(), e.getMessage());
         }
 
@@ -161,15 +212,11 @@ public class NotificationServiceImpl implements NotificationService {
     private String formaterStatut(StatutColis statut) {
         return switch (statut) {
             case ENREGISTRE -> "Enregistre";
-            case PRIS_EN_CHARGE -> "Pris en charge";
             case EN_TRANSIT -> "En transit";
-            case ARRIVE_DEPOT -> "Arrive au depot";
-            case EN_LIVRAISON -> "En cours de livraison";
-            case LIVRE -> "Livre";
+            case ARRIVE_AGENCE -> "Arrive a l'agence de retrait";
+            case RETIRE -> "Retire";
             case REFUSE -> "Refuse";
             case RETOUR_EXPEDITEUR -> "Retour expediteur";
-            case PASSAGE_FRONTIERE -> "Passage frontiere";
-            case EN_DOUANE -> "En douane";
         };
     }
 }

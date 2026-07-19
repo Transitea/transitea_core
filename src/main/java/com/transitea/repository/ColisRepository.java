@@ -1,5 +1,6 @@
 package com.transitea.repository;
 
+import com.transitea.entity.Agence;
 import com.transitea.entity.Colis;
 import com.transitea.entity.Utilisateur;
 import com.transitea.entity.enums.StatutColis;
@@ -21,24 +22,31 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
 
     Optional<Colis> findByUuidAndSupprimeFalse(String uuid);
 
-    Optional<Colis> findByTransporteurAndLocalIdAndSupprimeFalse(
-            Utilisateur transporteur, Long localId);
-
-    Page<Colis> findByTransporteurAndSupprimeFalse(Utilisateur transporteur, Pageable pageable);
-
-    Page<Colis> findByTransporteurAndStatutActuelAndSupprimeFalse(
-            Utilisateur transporteur, StatutColis statut, Pageable pageable);
+    Optional<Colis> findByCreeParAndLocalIdAndSupprimeFalse(
+            Utilisateur creePar, Long localId);
 
     Page<Colis> findBySupprimeFalse(Pageable pageable);
 
     Page<Colis> findByStatutActuelAndSupprimeFalse(StatutColis statut, Pageable pageable);
 
-    @Query("SELECT c FROM Colis c WHERE c.transporteur = :transporteur " +
-           "AND c.supprime = false " +
+    @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
+           "AND (c.agenceOrigine = :agence OR c.agenceRetrait = :agence)")
+    Page<Colis> findByAgenceAndSupprimeFalse(@Param("agence") Agence agence, Pageable pageable);
+
+    @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
+           "AND (c.agenceOrigine = :agence OR c.agenceRetrait = :agence) " +
+           "AND c.statutActuel = :statut")
+    Page<Colis> findByAgenceAndStatutActuelAndSupprimeFalse(
+            @Param("agence") Agence agence,
+            @Param("statut") StatutColis statut,
+            Pageable pageable);
+
+    @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
+           "AND (c.agenceOrigine = :agence OR c.agenceRetrait = :agence) " +
            "AND (LOWER(c.destinataireNom) LIKE LOWER(CONCAT('%', :recherche, '%')) " +
            "OR LOWER(c.codeTracking) LIKE LOWER(CONCAT('%', :recherche, '%')))")
-    Page<Colis> rechercherParTransporteur(
-            @Param("transporteur") Utilisateur transporteur,
+    Page<Colis> rechercherParAgence(
+            @Param("agence") Agence agence,
             @Param("recherche") String recherche,
             Pageable pageable);
 
@@ -47,11 +55,15 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
            "OR LOWER(c.codeTracking) LIKE LOWER(CONCAT('%', :recherche, '%')))")
     Page<Colis> rechercherTous(@Param("recherche") String recherche, Pageable pageable);
 
-    List<Colis> findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
-            Utilisateur transporteur, LocalDateTime debut, LocalDateTime fin);
+    List<Colis> findByCreeParAndDateCreationBetweenAndSupprimeFalse(
+            Utilisateur creePar, LocalDateTime debut, LocalDateTime fin);
 
-    long countByTransporteurAndStatutActuelAndSupprimeFalse(
-            Utilisateur transporteur, StatutColis statut);
+    @Query("SELECT COUNT(c) FROM Colis c WHERE c.supprime = false " +
+           "AND (c.agenceOrigine = :agence OR c.agenceRetrait = :agence) " +
+           "AND c.statutActuel = :statut")
+    long countByAgenceAndStatutActuelAndSupprimeFalse(
+            @Param("agence") Agence agence,
+            @Param("statut") StatutColis statut);
 
     long countByStatutActuelAndSupprimeFalse(StatutColis statut);
 

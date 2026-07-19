@@ -2,6 +2,6 @@ package com.transitea.entity.enums;
 
 public enum Role {
     ADMIN,
-    TRANSPORTEUR,
-    OPERATEUR
+    OPERATEUR,
+    AGENT
 }

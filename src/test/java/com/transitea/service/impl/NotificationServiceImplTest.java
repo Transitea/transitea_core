@@ -48,32 +48,32 @@ class NotificationServiceImplTest {
         ReflectionTestUtils.setField(notificationService, "expediteurEmail", "noreply@transitea.cd");
         ReflectionTestUtils.setField(notificationService, "baseUrl", "http://localhost:8080");
 
-        Utilisateur transporteur = Utilisateur.builder()
+        Utilisateur agent = Utilisateur.builder()
                 .nom("Lumbu")
                 .prenom("Louange")
                 .email("louange@transitea.cd")
-                .role(Role.TRANSPORTEUR)
+                .role(Role.AGENT)
                 .build();
-        transporteur.setId(1L);
+        agent.setId(1L);
 
         colisAvecEmail = Colis.builder()
                 .codeTracking("TRA-2026-ABC123")
-                .transporteur(transporteur)
+                .creePar(agent)
                 .expediteurNom("Jean Dupont")
                 .destinataireNom("Marie Martin")
                 .destinataireEmail("marie@example.com")
                 .poids(new BigDecimal("2.500"))
-                .statutActuel(StatutColis.PRIS_EN_CHARGE)
+                .statutActuel(StatutColis.ARRIVE_AGENCE)
                 .build();
         colisAvecEmail.setId(1L);
 
         colisSansEmail = Colis.builder()
                 .codeTracking("TRA-2026-XYZ999")
-                .transporteur(transporteur)
+                .creePar(agent)
                 .expediteurNom("Jean Dupont")
                 .destinataireNom("Paul Dupont")
                 .poids(new BigDecimal("1.000"))
-                .statutActuel(StatutColis.PRIS_EN_CHARGE)
+                .statutActuel(StatutColis.ARRIVE_AGENCE)
                 .build();
         colisSansEmail.setId(2L);
     }

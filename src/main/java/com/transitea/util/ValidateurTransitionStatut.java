@@ -16,37 +16,21 @@ public final class ValidateurTransitionStatut {
     static {
         TRANSITIONS_AUTORISEES.put(
                 StatutColis.ENREGISTRE,
-                EnumSet.of(StatutColis.PRIS_EN_CHARGE, StatutColis.REFUSE)
-        );
-        TRANSITIONS_AUTORISEES.put(
-                StatutColis.PRIS_EN_CHARGE,
                 EnumSet.of(StatutColis.EN_TRANSIT, StatutColis.REFUSE)
         );
         TRANSITIONS_AUTORISEES.put(
                 StatutColis.EN_TRANSIT,
-                EnumSet.of(StatutColis.PASSAGE_FRONTIERE, StatutColis.ARRIVE_DEPOT, StatutColis.EN_DOUANE)
+                EnumSet.of(StatutColis.ARRIVE_AGENCE)
         );
         TRANSITIONS_AUTORISEES.put(
-                StatutColis.PASSAGE_FRONTIERE,
-                EnumSet.of(StatutColis.EN_DOUANE, StatutColis.EN_TRANSIT)
-        );
-        TRANSITIONS_AUTORISEES.put(
-                StatutColis.EN_DOUANE,
-                EnumSet.of(StatutColis.EN_TRANSIT, StatutColis.ARRIVE_DEPOT)
-        );
-        TRANSITIONS_AUTORISEES.put(
-                StatutColis.ARRIVE_DEPOT,
-                EnumSet.of(StatutColis.EN_LIVRAISON)
-        );
-        TRANSITIONS_AUTORISEES.put(
-                StatutColis.EN_LIVRAISON,
-                EnumSet.of(StatutColis.LIVRE, StatutColis.RETOUR_EXPEDITEUR)
+                StatutColis.ARRIVE_AGENCE,
+                EnumSet.of(StatutColis.RETIRE, StatutColis.REFUSE)
         );
         TRANSITIONS_AUTORISEES.put(
                 StatutColis.REFUSE,
                 EnumSet.of(StatutColis.RETOUR_EXPEDITEUR)
         );
-        TRANSITIONS_AUTORISEES.put(StatutColis.LIVRE, EnumSet.noneOf(StatutColis.class));
+        TRANSITIONS_AUTORISEES.put(StatutColis.RETIRE, EnumSet.noneOf(StatutColis.class));
         TRANSITIONS_AUTORISEES.put(StatutColis.RETOUR_EXPEDITEUR, EnumSet.noneOf(StatutColis.class));
     }
 

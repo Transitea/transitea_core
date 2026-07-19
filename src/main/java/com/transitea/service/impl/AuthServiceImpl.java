@@ -5,12 +5,14 @@ import com.transitea.dto.request.InscriptionRequete;
 import com.transitea.dto.request.RafraichissementRequete;
 import com.transitea.dto.response.AuthReponse;
 import com.transitea.dto.response.UtilisateurReponse;
+import com.transitea.entity.Agence;
 import com.transitea.entity.RefreshToken;
 import com.transitea.entity.Utilisateur;
 import com.transitea.entity.enums.Role;
 import com.transitea.exception.ErreurMetier;
 import com.transitea.exception.EntiteNonTrouveeException;
 import com.transitea.exception.TokenInvalideException;
+import com.transitea.repository.AgenceRepository;
 import com.transitea.repository.RefreshTokenRepository;
 import com.transitea.repository.UtilisateurRepository;
 import com.transitea.security.ProprietesJwt;
@@ -34,6 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private static final Logger journal = LoggerFactory.getLogger(AuthServiceImpl.class);
 
     private final UtilisateurRepository utilisateurRepository;
+    private final AgenceRepository agenceRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final ServiceJwt serviceJwt;
     private final PasswordEncoder encodeurMotDePasse;
@@ -42,12 +45,14 @@ public class AuthServiceImpl implements AuthService {
 
     public AuthServiceImpl(
             UtilisateurRepository utilisateurRepository,
+            AgenceRepository agenceRepository,
             RefreshTokenRepository refreshTokenRepository,
             ServiceJwt serviceJwt,
             PasswordEncoder encodeurMotDePasse,
             AuthenticationManager gestionnaireAuthentification,
             ProprietesJwt proprietesJwt) {
         this.utilisateurRepository = utilisateurRepository;
+        this.agenceRepository = agenceRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.serviceJwt = serviceJwt;
         this.encodeurMotDePasse = encodeurMotDePasse;
@@ -65,13 +70,17 @@ public class AuthServiceImpl implements AuthService {
             throw new ErreurMetier("Un compte existe deja avec ce numero de telephone");
         }
 
+        Agence agence = agenceRepository.findByIdAndSupprimeFalse(requete.agenceId())
+                .orElseThrow(() -> new EntiteNonTrouveeException("Agence", requete.agenceId()));
+
         Utilisateur utilisateur = Utilisateur.builder()
                 .nom(requete.nom())
                 .prenom(requete.prenom())
                 .email(requete.email())
                 .telephone(requete.telephone())
                 .motDePasseHash(encodeurMotDePasse.encode(requete.motDePasse()))
-                .role(Role.TRANSPORTEUR)
+                .role(Role.AGENT)
+                .agence(agence)
                 .build();
 
         Utilisateur sauvegarde = utilisateurRepository.save(utilisateur);
@@ -168,6 +177,8 @@ public class AuthServiceImpl implements AuthService {
                 utilisateur.getTelephone(),
                 utilisateur.getRole(),
                 utilisateur.getStatut(),
+                utilisateur.getAgence() != null ? utilisateur.getAgence().getId() : null,
+                utilisateur.getAgence() != null ? utilisateur.getAgence().getNom() : null,
                 utilisateur.getDateCreation()
         );
     }

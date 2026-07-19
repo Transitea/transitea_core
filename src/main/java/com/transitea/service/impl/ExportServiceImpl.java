@@ -3,6 +3,7 @@ package com.transitea.service.impl;
 import com.transitea.entity.Colis;
 import com.transitea.entity.Utilisateur;
 import com.transitea.entity.enums.Role;
+import com.transitea.exception.AccesNonAutoriseException;
 import com.transitea.repository.ColisRepository;
 import com.transitea.service.ExportService;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public class ExportServiceImpl implements ExportService {
     public byte[] exporterCsvColis(Utilisateur utilisateur, LocalDateTime debut, LocalDateTime fin) {
         List<Colis> colisList;
 
-        if (utilisateur.getRole() == Role.ADMIN || utilisateur.getRole() == Role.OPERATEUR) {
+        if (utilisateur.getRole() == Role.ADMIN) {
             colisList = colisRepository.findBySupprimeFalse(
                     org.springframework.data.domain.Pageable.unpaged()).getContent();
             colisList = colisList.stream()
@@ -42,7 +43,10 @@ public class ExportServiceImpl implements ExportService {
                               && !c.getDateCreation().isAfter(fin))
                     .toList();
         } else {
-            colisList = colisRepository.findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
+            if (utilisateur.getAgence() == null) {
+                throw new AccesNonAutoriseException();
+            }
+            colisList = colisRepository.findByCreeParAndDateCreationBetweenAndSupprimeFalse(
                     utilisateur, debut, fin);
         }
 

@@ -1,5 +1,6 @@
 package com.transitea.service.impl;
 
+import com.transitea.entity.Agence;
 import com.transitea.entity.Colis;
 import com.transitea.entity.Utilisateur;
 import com.transitea.entity.enums.Role;
@@ -21,7 +22,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,7 +34,8 @@ class ExportServiceImplTest {
     @InjectMocks
     private ExportServiceImpl exportService;
 
-    private Utilisateur transporteur;
+    private Agence agenceKinshasa;
+    private Utilisateur agent;
     private Utilisateur admin;
     private Utilisateur operateur;
     private Colis colis;
@@ -43,13 +44,17 @@ class ExportServiceImplTest {
 
     @BeforeEach
     void initialiser() {
-        transporteur = Utilisateur.builder()
+        agenceKinshasa = Agence.builder().nom("Agence Kinshasa").ville("Kinshasa").build();
+        agenceKinshasa.setId(1L);
+
+        agent = Utilisateur.builder()
                 .nom("Lumbu")
                 .prenom("Louange")
                 .email("louange@transitea.cd")
-                .role(Role.TRANSPORTEUR)
+                .role(Role.AGENT)
+                .agence(agenceKinshasa)
                 .build();
-        transporteur.setId(1L);
+        agent.setId(1L);
 
         admin = Utilisateur.builder()
                 .nom("Admin")
@@ -64,6 +69,7 @@ class ExportServiceImplTest {
                 .prenom("Pierre")
                 .email("operateur@transitea.cd")
                 .role(Role.OPERATEUR)
+                .agence(agenceKinshasa)
                 .build();
         operateur.setId(3L);
 
@@ -72,7 +78,9 @@ class ExportServiceImplTest {
 
         colis = Colis.builder()
                 .codeTracking("TRA-2026-ABC123")
-                .transporteur(transporteur)
+                .agenceOrigine(agenceKinshasa)
+                .agenceRetrait(agenceKinshasa)
+                .creePar(agent)
                 .expediteurNom("Jean Dupont")
                 .expediteurTelephone("0812345678")
                 .destinataireNom("Marie Martin")
@@ -80,23 +88,23 @@ class ExportServiceImplTest {
                 .destinataireVille("Kinshasa")
                 .description("Documents")
                 .poids(new BigDecimal("2.500"))
-                .statutActuel(StatutColis.LIVRE)
+                .statutActuel(StatutColis.RETIRE)
                 .build();
         colis.setId(10L);
         colis.setDateCreation(LocalDateTime.of(2026, 6, 15, 10, 0));
     }
 
     @Test
-    void doit_utiliser_repository_transporteur_quand_role_transporteur() {
-        when(colisRepository.findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
-                transporteur, debut, fin))
+    void doit_utiliser_repository_scope_agent_quand_role_agent() {
+        when(colisRepository.findByCreeParAndDateCreationBetweenAndSupprimeFalse(
+                agent, debut, fin))
                 .thenReturn(List.of(colis));
 
-        byte[] resultat = exportService.exporterCsvColis(transporteur, debut, fin);
+        byte[] resultat = exportService.exporterCsvColis(agent, debut, fin);
 
         assertThat(resultat).isNotEmpty();
-        verify(colisRepository).findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
-                transporteur, debut, fin);
+        verify(colisRepository).findByCreeParAndDateCreationBetweenAndSupprimeFalse(
+                agent, debut, fin);
     }
 
     @Test
@@ -110,22 +118,24 @@ class ExportServiceImplTest {
     }
 
     @Test
-    void doit_utiliser_findAll_quand_role_operateur() {
-        when(colisRepository.findBySupprimeFalse(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(colis)));
+    void doit_utiliser_repository_scope_agence_quand_role_operateur() {
+        when(colisRepository.findByCreeParAndDateCreationBetweenAndSupprimeFalse(
+                operateur, debut, fin))
+                .thenReturn(List.of(colis));
 
         exportService.exporterCsvColis(operateur, debut, fin);
 
-        verify(colisRepository).findBySupprimeFalse(any(Pageable.class));
+        verify(colisRepository).findByCreeParAndDateCreationBetweenAndSupprimeFalse(
+                operateur, debut, fin);
     }
 
     @Test
     void doit_contenir_en_tete_csv() {
-        when(colisRepository.findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
+        when(colisRepository.findByCreeParAndDateCreationBetweenAndSupprimeFalse(
                 any(), any(), any()))
                 .thenReturn(List.of());
 
-        byte[] resultat = exportService.exporterCsvColis(transporteur, debut, fin);
+        byte[] resultat = exportService.exporterCsvColis(agent, debut, fin);
 
         String csv = new String(resultat, StandardCharsets.UTF_8);
         assertThat(csv).startsWith("Code Tracking,");
@@ -136,18 +146,18 @@ class ExportServiceImplTest {
 
     @Test
     void doit_contenir_donnees_colis_dans_csv() {
-        when(colisRepository.findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
+        when(colisRepository.findByCreeParAndDateCreationBetweenAndSupprimeFalse(
                 any(), any(), any()))
                 .thenReturn(List.of(colis));
 
-        byte[] resultat = exportService.exporterCsvColis(transporteur, debut, fin);
+        byte[] resultat = exportService.exporterCsvColis(agent, debut, fin);
 
         String csv = new String(resultat, StandardCharsets.UTF_8);
         assertThat(csv).contains("TRA-2026-ABC123");
         assertThat(csv).contains("Jean Dupont");
         assertThat(csv).contains("Marie Martin");
         assertThat(csv).contains("Kinshasa");
-        assertThat(csv).contains("LIVRE");
+        assertThat(csv).contains("RETIRE");
         assertThat(csv).contains("2.500");
     }
 
@@ -155,7 +165,9 @@ class ExportServiceImplTest {
     void doit_echapper_virgules_dans_les_champs() {
         colis = Colis.builder()
                 .codeTracking("TRA-2026-ABC999")
-                .transporteur(transporteur)
+                .agenceOrigine(agenceKinshasa)
+                .agenceRetrait(agenceKinshasa)
+                .creePar(agent)
                 .expediteurNom("Dupont, Jean")
                 .destinataireNom("Martin")
                 .poids(new BigDecimal("1.000"))
@@ -164,11 +176,11 @@ class ExportServiceImplTest {
         colis.setId(11L);
         colis.setDateCreation(LocalDateTime.of(2026, 6, 15, 10, 0));
 
-        when(colisRepository.findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
+        when(colisRepository.findByCreeParAndDateCreationBetweenAndSupprimeFalse(
                 any(), any(), any()))
                 .thenReturn(List.of(colis));
 
-        byte[] resultat = exportService.exporterCsvColis(transporteur, debut, fin);
+        byte[] resultat = exportService.exporterCsvColis(agent, debut, fin);
 
         String csv = new String(resultat, StandardCharsets.UTF_8);
         assertThat(csv).contains("\"Dupont, Jean\"");
@@ -176,11 +188,11 @@ class ExportServiceImplTest {
 
     @Test
     void doit_retourner_csv_vide_quand_aucun_colis() {
-        when(colisRepository.findByTransporteurAndDateCreationBetweenAndSupprimeFalse(
+        when(colisRepository.findByCreeParAndDateCreationBetweenAndSupprimeFalse(
                 any(), any(), any()))
                 .thenReturn(List.of());
 
-        byte[] resultat = exportService.exporterCsvColis(transporteur, debut, fin);
+        byte[] resultat = exportService.exporterCsvColis(agent, debut, fin);
 
         String csv = new String(resultat, StandardCharsets.UTF_8);
         String[] lignes = csv.split("\n");

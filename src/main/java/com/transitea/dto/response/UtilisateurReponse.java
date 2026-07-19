@@ -14,6 +14,8 @@ public record UtilisateurReponse(
         String telephone,
         Role role,
         StatutUtilisateur statut,
+        Long agenceId,
+        String agenceNom,
         LocalDateTime dateCreation
 ) {
 }
