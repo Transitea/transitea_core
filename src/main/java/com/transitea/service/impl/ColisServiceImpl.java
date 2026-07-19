@@ -209,7 +209,7 @@ public class ColisServiceImpl implements ColisService {
     public ColisReponse retirer(String codeTracking, Utilisateur utilisateur) {
         Colis colis = colisRepository.findByCodeTrackingAndSupprimeFalse(codeTracking)
                 .orElseThrow(() -> new EntiteNonTrouveeException("Colis", codeTracking));
-        verifierAcces(colis, utilisateur);
+        verifierAccesRetrait(colis, utilisateur);
 
         StatutColis ancienStatut = colis.getStatutActuel();
         ValidateurTransitionStatut.valider(ancienStatut, StatutColis.RETIRE);
@@ -247,7 +247,7 @@ public class ColisServiceImpl implements ColisService {
         Colis colis = recupererColisOuEchouer(id);
         verifierAcces(colis, utilisateur);
         String urlTracking = baseUrl + "/v1/tracking/" + colis.getCodeTracking();
-        return qrCodeService.generer(urlTracking);
+        return qrCodeService.generer(urlTracking, colis.getCodeTracking());
     }
 
     @Override
@@ -295,6 +295,21 @@ public class ColisServiceImpl implements ColisService {
                         || colis.getAgenceRetrait().getId().equals(agence.getId());
 
         if (!concerneParAgence) {
+            throw new AccesNonAutoriseException();
+        }
+    }
+
+    /**
+     * Le retrait ne peut etre valide que par un ADMIN ou par un agent/operateur
+     * de l'agence de retrait elle-meme (pas l'agence d'origine).
+     */
+    private void verifierAccesRetrait(Colis colis, Utilisateur utilisateur) {
+        if (utilisateur.getRole() == Role.ADMIN) {
+            return;
+        }
+
+        Agence agence = agenceDeLUtilisateur(utilisateur);
+        if (!colis.getAgenceRetrait().getId().equals(agence.getId())) {
             throw new AccesNonAutoriseException();
         }
     }

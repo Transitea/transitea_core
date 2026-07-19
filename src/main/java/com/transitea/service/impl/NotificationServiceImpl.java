@@ -7,6 +7,7 @@ import com.transitea.entity.enums.StatutNotification;
 import com.transitea.entity.enums.TypeCanal;
 import com.transitea.repository.NotificationRepository;
 import com.transitea.service.NotificationService;
+import com.transitea.service.WhatsAppService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ public class NotificationServiceImpl implements NotificationService {
     private static final Logger journal = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
     private final JavaMailSender mailSender;
+    private final WhatsAppService whatsAppService;
     private final NotificationRepository notificationRepository;
 
     @Value("${spring.mail.username:}")
@@ -33,8 +35,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     public NotificationServiceImpl(
             JavaMailSender mailSender,
+            WhatsAppService whatsAppService,
             NotificationRepository notificationRepository) {
         this.mailSender = mailSender;
+        this.whatsAppService = whatsAppService;
         this.notificationRepository = notificationRepository;
     }
 
@@ -55,76 +59,80 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private void notifierDestinataire(Colis colis, StatutColis ancienStatut) {
-        String destinataireEmail = colis.getDestinataireEmail();
-
-        if (destinataireEmail == null || destinataireEmail.isBlank()) {
-            journal.debug("Pas de notification : email destinataire absent pour le colis {}",
-                    colis.getCodeTracking());
-            return;
-        }
-
-        Notification notification = Notification.builder()
-                .colis(colis)
-                .destinataire(destinataireEmail)
-                .typeCanal(TypeCanal.EMAIL)
-                .message(construireMessage(colis, ancienStatut))
-                .build();
-
-        try {
-            envoyerEmail(
-                    destinataireEmail,
-                    construireSujet(colis),
-                    construireCorpsHtml(colis, ancienStatut)
-            );
-
-            notification.setStatut(StatutNotification.ENVOYE);
-            notification.setNbTentatives(1);
-            journal.info("Notification email envoyee pour le colis {} a {}",
-                    colis.getCodeTracking(), destinataireEmail);
-
-        } catch (Exception e) {
-            notification.setStatut(StatutNotification.ECHEC);
-            notification.setNbTentatives(1);
-            journal.error("Echec envoi email pour le colis {} : {}",
-                    colis.getCodeTracking(), e.getMessage());
-        }
-
-        notificationRepository.save(notification);
+        envoyerNotification(
+                colis,
+                colis.getDestinataireTelephone(),
+                colis.getDestinataireEmail(),
+                construireSujet(colis),
+                construireMessage(colis, ancienStatut),
+                construireCorpsHtml(colis, ancienStatut)
+        );
     }
 
     private void notifierExpediteur(Colis colis) {
-        String expediteurEmailDestinataire = colis.getExpediteurEmail();
+        envoyerNotification(
+                colis,
+                colis.getExpediteurTelephone(),
+                colis.getExpediteurEmail(),
+                "Votre colis " + colis.getCodeTracking() + " a ete retire",
+                "Votre colis " + colis.getCodeTracking() + " a ete retire par le destinataire.",
+                "<p>Bonjour,</p><p>Votre colis <strong>" + colis.getCodeTracking()
+                        + "</strong> a bien ete retire par le destinataire.</p>"
+        );
+    }
 
-        if (expediteurEmailDestinataire == null || expediteurEmailDestinataire.isBlank()) {
-            journal.debug("Pas de notification retrait : email expediteur absent pour le colis {}",
+    /**
+     * WhatsApp en canal prioritaire, repli automatique sur e-mail si le
+     * telephone est absent ou si l'envoi WhatsApp echoue.
+     */
+    private void envoyerNotification(
+            Colis colis, String telephone, String email,
+            String sujet, String messageTexte, String corpsHtml) {
+
+        if ((telephone == null || telephone.isBlank()) && (email == null || email.isBlank())) {
+            journal.debug("Pas de notification possible (ni telephone ni email) pour le colis {}",
                     colis.getCodeTracking());
             return;
         }
 
-        Notification notification = Notification.builder()
-                .colis(colis)
-                .destinataire(expediteurEmailDestinataire)
-                .typeCanal(TypeCanal.EMAIL)
-                .message("Colis " + colis.getCodeTracking() + " retire par le destinataire")
-                .build();
+        if (telephone != null && !telephone.isBlank()
+                && whatsAppService.envoyerMessage(telephone, messageTexte)) {
+            enregistrerNotification(colis, telephone, TypeCanal.WHATSAPP, messageTexte, StatutNotification.ENVOYE);
+            journal.info("Notification WhatsApp envoyee pour le colis {} a {}",
+                    colis.getCodeTracking(), telephone);
+            return;
+        }
+
+        if (email == null || email.isBlank()) {
+            journal.debug("Pas de repli e-mail possible (email absent) pour le colis {}",
+                    colis.getCodeTracking());
+            return;
+        }
 
         try {
-            envoyerEmail(
-                    expediteurEmailDestinataire,
-                    "Votre colis " + colis.getCodeTracking() + " a ete retire",
-                    "<p>Bonjour,</p><p>Votre colis <strong>" + colis.getCodeTracking()
-                            + "</strong> a bien ete retire par le destinataire.</p>"
-            );
-            notification.setStatut(StatutNotification.ENVOYE);
-            notification.setNbTentatives(1);
-            journal.info("Notification de retrait envoyee a l'expediteur pour le colis {}",
-                    colis.getCodeTracking());
+            envoyerEmail(email, sujet, corpsHtml);
+            enregistrerNotification(colis, email, TypeCanal.EMAIL, messageTexte, StatutNotification.ENVOYE);
+            journal.info("Notification email envoyee pour le colis {} a {}",
+                    colis.getCodeTracking(), email);
+
         } catch (Exception e) {
-            notification.setStatut(StatutNotification.ECHEC);
-            notification.setNbTentatives(1);
-            journal.error("Echec notification retrait pour le colis {} : {}",
+            enregistrerNotification(colis, email, TypeCanal.EMAIL, messageTexte, StatutNotification.ECHEC);
+            journal.error("Echec envoi email pour le colis {} : {}",
                     colis.getCodeTracking(), e.getMessage());
         }
+    }
+
+    private void enregistrerNotification(
+            Colis colis, String destinataire, TypeCanal canal, String message, StatutNotification statut) {
+
+        Notification notification = Notification.builder()
+                .colis(colis)
+                .destinataire(destinataire)
+                .typeCanal(canal)
+                .message(message)
+                .statut(statut)
+                .nbTentatives(1)
+                .build();
 
         notificationRepository.save(notification);
     }

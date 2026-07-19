@@ -41,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -75,6 +76,7 @@ class ColisServiceImplTest {
     private Agence agenceLubumbashi;
     private Utilisateur agent;
     private Utilisateur autreAgent;
+    private Utilisateur agentAgenceRetrait;
     private Utilisateur admin;
     private Utilisateur operateur;
     private Colis colis;
@@ -110,6 +112,15 @@ class ColisServiceImplTest {
                 .agence(agenceLubumbashi)
                 .build();
         autreAgent.setId(2L);
+
+        agentAgenceRetrait = Utilisateur.builder()
+                .nom("Kalonji")
+                .prenom("Eric")
+                .email("eric@transitea.cd")
+                .role(Role.AGENT)
+                .agence(agenceGoma)
+                .build();
+        agentAgenceRetrait.setId(5L);
 
         admin = Utilisateur.builder()
                 .nom("Admin")
@@ -420,7 +431,7 @@ class ColisServiceImplTest {
         when(colisRepository.save(any(Colis.class))).thenReturn(colis);
         when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
 
-        colisService.retirer("TRA-2026-ABC123", agent);
+        colisService.retirer("TRA-2026-ABC123", agentAgenceRetrait);
 
         ArgumentCaptor<Colis> captor = ArgumentCaptor.forClass(Colis.class);
         verify(colisRepository).save(captor.capture());
@@ -429,12 +440,37 @@ class ColisServiceImplTest {
     }
 
     @Test
+    void doit_autoriser_admin_a_retirer_nimporte_quel_colis() {
+        colis.setStatutActuel(StatutColis.ARRIVE_AGENCE);
+        when(colisRepository.findByCodeTrackingAndSupprimeFalse("TRA-2026-ABC123"))
+                .thenReturn(Optional.of(colis));
+        when(colisRepository.save(any(Colis.class))).thenReturn(colis);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        colisService.retirer("TRA-2026-ABC123", admin);
+
+        verify(colisRepository).save(any(Colis.class));
+    }
+
+    @Test
+    void doit_refuser_retrait_par_agent_de_lagence_origine() {
+        colis.setStatutActuel(StatutColis.ARRIVE_AGENCE);
+        when(colisRepository.findByCodeTrackingAndSupprimeFalse("TRA-2026-ABC123"))
+                .thenReturn(Optional.of(colis));
+
+        assertThatThrownBy(() -> colisService.retirer("TRA-2026-ABC123", agent))
+                .isInstanceOf(AccesNonAutoriseException.class);
+
+        verify(colisRepository, never()).save(any());
+    }
+
+    @Test
     void doit_lancer_exception_quand_retrait_sur_statut_non_arrive() {
         colis.setStatutActuel(StatutColis.ENREGISTRE);
         when(colisRepository.findByCodeTrackingAndSupprimeFalse("TRA-2026-ABC123"))
                 .thenReturn(Optional.of(colis));
 
-        assertThatThrownBy(() -> colisService.retirer("TRA-2026-ABC123", agent))
+        assertThatThrownBy(() -> colisService.retirer("TRA-2026-ABC123", agentAgenceRetrait))
                 .isInstanceOf(TransitionStatutInvalideException.class);
     }
 
@@ -498,12 +534,12 @@ class ColisServiceImplTest {
         byte[] qrCodeBytes = new byte[]{1, 2, 3};
         String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
-        when(qrCodeService.generer(urlTracking)).thenReturn(qrCodeBytes);
+        when(qrCodeService.generer(eq(urlTracking), anyString())).thenReturn(qrCodeBytes);
 
         byte[] resultat = colisService.genererQrCode(10L, agent);
 
         assertThat(resultat).isEqualTo(qrCodeBytes);
-        verify(qrCodeService).generer(urlTracking);
+        verify(qrCodeService).generer(eq(urlTracking), anyString());
     }
 
     @Test
@@ -511,7 +547,7 @@ class ColisServiceImplTest {
         byte[] qrCodeBytes = new byte[]{1, 2, 3};
         String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
-        when(qrCodeService.generer(urlTracking)).thenReturn(qrCodeBytes);
+        when(qrCodeService.generer(eq(urlTracking), anyString())).thenReturn(qrCodeBytes);
 
         byte[] resultat = colisService.genererQrCode(10L, admin);
 
@@ -523,7 +559,7 @@ class ColisServiceImplTest {
         byte[] qrCodeBytes = new byte[]{1, 2, 3};
         String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
-        when(qrCodeService.generer(urlTracking)).thenReturn(qrCodeBytes);
+        when(qrCodeService.generer(eq(urlTracking), anyString())).thenReturn(qrCodeBytes);
 
         byte[] resultat = colisService.genererQrCode(10L, operateur);
 
@@ -537,7 +573,7 @@ class ColisServiceImplTest {
         assertThatThrownBy(() -> colisService.genererQrCode(10L, autreAgent))
                 .isInstanceOf(AccesNonAutoriseException.class);
 
-        verify(qrCodeService, never()).generer(anyString());
+        verify(qrCodeService, never()).generer(anyString(), anyString());
     }
 
     @Test
