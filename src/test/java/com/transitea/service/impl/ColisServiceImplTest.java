@@ -20,6 +20,7 @@ import com.transitea.repository.ColisRepository;
 import com.transitea.repository.MiseAJourStatutRepository;
 import com.transitea.service.NotificationService;
 import com.transitea.service.QrCodeService;
+import com.transitea.service.QuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -67,6 +68,9 @@ class ColisServiceImplTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private QuotaService quotaService;
 
     @InjectMocks
     private ColisServiceImpl colisService;

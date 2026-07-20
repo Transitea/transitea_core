@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -62,6 +63,18 @@ public class GestionnaireExceptionsGlobal {
         ErreurReponse erreur = new ErreurReponse(
                 HttpStatus.FORBIDDEN.value(),
                 ex.getMessage(),
+                requete.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(erreur);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErreurReponse> gererAccesRefuseSpringSecurity(
+            AccessDeniedException ex, HttpServletRequest requete) {
+
+        ErreurReponse erreur = new ErreurReponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Acces refuse : privileges insuffisants",
                 requete.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(erreur);

@@ -62,6 +62,10 @@ public class ConfigurationSecurite {
                                 "/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/tracking/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

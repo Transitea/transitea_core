@@ -15,6 +15,7 @@ import com.transitea.repository.AgenceRepository;
 import com.transitea.repository.ColisRepository;
 import com.transitea.repository.MiseAJourStatutRepository;
 import com.transitea.repository.SyncLogRepository;
+import com.transitea.service.QuotaService;
 import com.transitea.service.SyncService;
 import com.transitea.util.GenerateurCodeTracking;
 import org.slf4j.Logger;
@@ -37,16 +38,19 @@ public class SyncServiceImpl implements SyncService {
     private final AgenceRepository agenceRepository;
     private final MiseAJourStatutRepository miseAJourStatutRepository;
     private final SyncLogRepository syncLogRepository;
+    private final QuotaService quotaService;
 
     public SyncServiceImpl(
             ColisRepository colisRepository,
             AgenceRepository agenceRepository,
             MiseAJourStatutRepository miseAJourStatutRepository,
-            SyncLogRepository syncLogRepository) {
+            SyncLogRepository syncLogRepository,
+            QuotaService quotaService) {
         this.colisRepository = colisRepository;
         this.agenceRepository = agenceRepository;
         this.miseAJourStatutRepository = miseAJourStatutRepository;
         this.syncLogRepository = syncLogRepository;
+        this.quotaService = quotaService;
     }
 
     @Override
@@ -132,6 +136,8 @@ public class SyncServiceImpl implements SyncService {
                     .utilisateur(utilisateur)
                     .build();
             miseAJourStatutRepository.save(historique);
+
+            quotaService.enregistrerColis(agenceOrigine);
 
             return new ResultatSyncColisReponse(
                     requete.localId(), colisSauvegarde.getCodeTracking(), true, false, null);

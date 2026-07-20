@@ -20,6 +20,7 @@ import com.transitea.repository.MiseAJourStatutRepository;
 import com.transitea.service.ColisService;
 import com.transitea.service.NotificationService;
 import com.transitea.service.QrCodeService;
+import com.transitea.service.QuotaService;
 import com.transitea.util.GenerateurCodeTracking;
 import com.transitea.util.ValidateurTransitionStatut;
 import org.slf4j.Logger;
@@ -48,6 +49,7 @@ public class ColisServiceImpl implements ColisService {
     private final ColisMapper colisMapper;
     private final QrCodeService qrCodeService;
     private final NotificationService notificationService;
+    private final QuotaService quotaService;
 
     @Value("${application.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -58,13 +60,15 @@ public class ColisServiceImpl implements ColisService {
             MiseAJourStatutRepository miseAJourStatutRepository,
             ColisMapper colisMapper,
             QrCodeService qrCodeService,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            QuotaService quotaService) {
         this.colisRepository = colisRepository;
         this.agenceRepository = agenceRepository;
         this.miseAJourStatutRepository = miseAJourStatutRepository;
         this.colisMapper = colisMapper;
         this.qrCodeService = qrCodeService;
         this.notificationService = notificationService;
+        this.quotaService = quotaService;
     }
 
     @Override
@@ -96,6 +100,8 @@ public class ColisServiceImpl implements ColisService {
 
         enregistrerHistoriqueStatut(
                 colisSauvegarde, null, StatutColis.ENREGISTRE, null, null, creePar);
+
+        quotaService.enregistrerColis(agenceOrigine);
 
         journal.info("Colis cree avec le code : {}", codeTracking);
         return colisMapper.versReponse(colisSauvegarde);
