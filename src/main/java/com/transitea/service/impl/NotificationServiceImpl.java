@@ -1,10 +1,16 @@
 package com.transitea.service.impl;
 
+import com.transitea.dto.response.NotificationReponse;
+import com.transitea.dto.response.ReponsePagee;
+import com.transitea.entity.Agence;
 import com.transitea.entity.Colis;
 import com.transitea.entity.Notification;
+import com.transitea.entity.Utilisateur;
+import com.transitea.entity.enums.Role;
 import com.transitea.entity.enums.StatutColis;
 import com.transitea.entity.enums.StatutNotification;
 import com.transitea.entity.enums.TypeCanal;
+import com.transitea.exception.AccesNonAutoriseException;
 import com.transitea.repository.NotificationRepository;
 import com.transitea.service.NotificationService;
 import com.transitea.service.WhatsAppService;
@@ -13,10 +19,15 @@ import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
@@ -226,5 +237,47 @@ public class NotificationServiceImpl implements NotificationService {
             case REFUSE -> "Refuse";
             case RETOUR_EXPEDITEUR -> "Retour expediteur";
         };
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReponsePagee<NotificationReponse> lister(Utilisateur utilisateur, Pageable pageable) {
+        Page<Notification> page = utilisateur.getRole() == Role.ADMIN
+                ? notificationRepository.findAllByOrderByDateCreationDesc(pageable)
+                : notificationRepository.findByAgenceOrderByDateCreationDesc(
+                        agenceDeLUtilisateur(utilisateur), pageable);
+
+        return ReponsePagee.depuis(page.map(this::versReponse));
+    }
+
+    private Agence agenceDeLUtilisateur(Utilisateur utilisateur) {
+        if (utilisateur.getAgence() == null) {
+            throw new AccesNonAutoriseException();
+        }
+        return utilisateur.getAgence();
+    }
+
+    /**
+     * Aucun champ "cible" n'est persiste : on le deduit en comparant le contact
+     * notifie a ceux de l'expediteur / du destinataire du colis.
+     */
+    private NotificationReponse versReponse(Notification notification) {
+        Colis colis = notification.getColis();
+        boolean estExpediteur =
+                Objects.equals(notification.getDestinataire(), colis.getExpediteurTelephone())
+                        || Objects.equals(notification.getDestinataire(), colis.getExpediteurEmail());
+
+        return new NotificationReponse(
+                notification.getId(),
+                colis.getId(),
+                colis.getCodeTracking(),
+                notification.getDestinataire(),
+                estExpediteur ? "EXPEDITEUR" : "DESTINATAIRE",
+                notification.getTypeCanal(),
+                notification.getMessage(),
+                notification.getStatut(),
+                notification.getNbTentatives(),
+                notification.getDateCreation()
+        );
     }
 }

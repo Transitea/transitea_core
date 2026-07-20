@@ -5,9 +5,13 @@ import com.transitea.dto.request.MiseAJourStatutRequete;
 import com.transitea.dto.response.ColisReponse;
 import com.transitea.dto.response.ReponsePagee;
 import com.transitea.dto.response.StatistiquesReponse;
+import com.transitea.dto.response.VolumeJourReponse;
 import com.transitea.entity.Utilisateur;
 import com.transitea.entity.enums.StatutColis;
 import org.springframework.data.domain.Pageable;
+
+import java.time.LocalDate;
+import java.util.List;
 
 public interface ColisService {
 
@@ -28,4 +32,6 @@ public interface ColisService {
     byte[] genererQrCode(Long id, Utilisateur utilisateur);
 
     StatistiquesReponse obtenirStatistiques(Utilisateur utilisateur);
+
+    List<VolumeJourReponse> obtenirVolumeQuotidien(Utilisateur utilisateur, LocalDate debut, LocalDate fin);
 }

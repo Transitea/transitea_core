@@ -5,6 +5,7 @@ import com.transitea.dto.request.MiseAJourStatutRequete;
 import com.transitea.dto.response.ColisReponse;
 import com.transitea.dto.response.ReponsePagee;
 import com.transitea.dto.response.StatistiquesReponse;
+import com.transitea.dto.response.VolumeJourReponse;
 import com.transitea.entity.Utilisateur;
 import com.transitea.entity.enums.StatutColis;
 import com.transitea.service.ColisService;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/v1/colis")
@@ -79,6 +84,15 @@ public class ColisController {
             @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
 
         return ResponseEntity.ok(colisService.obtenirStatistiques(utilisateurConnecte));
+    }
+
+    @GetMapping("/volume-quotidien")
+    public ResponseEntity<List<VolumeJourReponse>> volumeQuotidien(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin,
+            @AuthenticationPrincipal Utilisateur utilisateurConnecte) {
+
+        return ResponseEntity.ok(colisService.obtenirVolumeQuotidien(utilisateurConnecte, debut, fin));
     }
 
     @GetMapping("/{id}")
