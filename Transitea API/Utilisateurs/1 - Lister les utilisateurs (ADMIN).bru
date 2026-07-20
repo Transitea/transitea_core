@@ -1,0 +1,29 @@
+meta {
+  name: 1 - Lister les utilisateurs (ADMIN)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/utilisateurs?page=0&taille=20
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  taille: 20
+  ~agenceId: 1
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+docs {
+  Reserve au role ADMIN (403 sinon). Filtre optionnel par agenceId.
+}
+
+settings {
+  encodeUrl: true
+}

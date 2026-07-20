@@ -1,0 +1,37 @@
+meta {
+  name: 2 - Creer un operateur ou agent (ADMIN)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/utilisateurs
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "nom": "Faure",
+    "prenom": "Antoine",
+    "email": "antoine.faure@transitea.fr",
+    "telephone": "+33665432109",
+    "motDePasse": "motdepasse123",
+    "role": "AGENT",
+    "agenceId": 1
+  }
+}
+
+docs {
+  Reserve au role ADMIN. Le role ADMIN est refuse via cet endpoint (creation
+  d'un compte ADMIN interdite ici). agenceId obligatoire.
+}
+
+settings {
+  encodeUrl: true
+}

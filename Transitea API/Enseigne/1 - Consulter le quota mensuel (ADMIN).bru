@@ -1,0 +1,27 @@
+meta {
+  name: 1 - Consulter le quota mensuel (ADMIN)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/enseigne
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+docs {
+  Reserve au role ADMIN (403 sinon). Retourne le nom de l'enseigne, le palier
+  d'abonnement, le quota mensuel de colis, la consommation courante et le
+  pourcentage consomme. Le compteur s'incremente automatiquement a chaque
+  colis enregistre (creation directe ou sync hors-ligne) et se remet a zero
+  le 1er de chaque mois.
+}
+
+settings {
+  encodeUrl: true
+}

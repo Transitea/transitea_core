@@ -14,6 +14,7 @@ import com.transitea.repository.AgenceRepository;
 import com.transitea.repository.ColisRepository;
 import com.transitea.repository.MiseAJourStatutRepository;
 import com.transitea.repository.SyncLogRepository;
+import com.transitea.service.QuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,6 +51,9 @@ class SyncServiceImplTest {
 
     @Mock
     private SyncLogRepository syncLogRepository;
+
+    @Mock
+    private QuotaService quotaService;
 
     @InjectMocks
     private SyncServiceImpl syncService;

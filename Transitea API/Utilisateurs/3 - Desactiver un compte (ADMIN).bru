@@ -1,0 +1,31 @@
+meta {
+  name: 3 - Desactiver un compte (ADMIN)
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/v1/utilisateurs/2/statut
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "statut": "INACTIF"
+  }
+}
+
+docs {
+  Reserve au role ADMIN. Un compte INACTIF ne peut plus se connecter
+  (isAccountNonLocked = false, isEnabled = false).
+}
+
+settings {
+  encodeUrl: true
+}
