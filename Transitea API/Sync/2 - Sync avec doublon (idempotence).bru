@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/v1/sync
+  url: {{baseUrl}}/v1/sync/upload
   body: json
   auth: inherit
 }
@@ -29,13 +29,14 @@ body:json {
         "poids": 3.500,
         "localId": 1001
       }
-    ]
+    ],
+    "misesAJourStatut": []
   }
 }
 
 docs {
   Renvoyer le meme localId doit retourner doublon=true sans creer de doublon en BDD.
-  nbDoublons doit etre 1, nbReussis doit etre 0.
+  nbColisDoublons doit etre 1, nbColisReussis doit etre 0.
 }
 
 settings {

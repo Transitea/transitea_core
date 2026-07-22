@@ -1,0 +1,41 @@
+meta {
+  name: 3 - Sync mise a jour de statut
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/sync/upload
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "colis": [],
+    "misesAJourStatut": [
+      {
+        "colisId": 1,
+        "nouveauStatut": "EN_TRANSIT",
+        "commentaire": "Depart de l'agence d'origine",
+        "baseVersion": 0,
+        "dateChangementClient": "2026-06-15T09:30:00"
+      }
+    ]
+  }
+}
+
+docs {
+  Applique une mise a jour de statut mise en file hors-ligne. baseVersion doit
+  correspondre a la version connue du client au moment ou le changement a ete
+  effectue ; en cas d'ecart, le serveur resout par Last-Write-Wins (voir CDC 7.3).
+}
+
+settings {
+  encodeUrl: true
+}

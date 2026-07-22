@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/v1/sync
+  url: {{baseUrl}}/v1/sync/upload
   body: json
   auth: inherit
 }
@@ -47,14 +47,15 @@ body:json {
         "poids": 12.000,
         "localId": 1002
       }
-    ]
+    ],
+    "misesAJourStatut": []
   }
 }
 
 script:post-response {
   if (res.getStatus() === 200) {
     var json = res.getBody();
-    console.log('Sync terminee : ' + json.nbReussis + ' reussis, ' + json.nbDoublons + ' doublons, ' + json.nbEchecs + ' echecs');
+    console.log('Sync terminee : ' + json.nbColisReussis + ' colis reussis, ' + json.nbColisDoublons + ' doublons, ' + json.nbColisEchecs + ' echecs');
   }
 }
 

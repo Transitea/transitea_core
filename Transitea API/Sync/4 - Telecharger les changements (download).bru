@@ -1,0 +1,30 @@
+meta {
+  name: 4 - Telecharger les changements (download)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v1/sync/download?since=2026-06-15T00:00:00
+  body: none
+  auth: inherit
+}
+
+params:query {
+  since: 2026-06-15T00:00:00
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+docs {
+  Retourne les colis crees ou modifies depuis la date "since" (format ISO-8601
+  sans timezone), visibles par l'utilisateur (tous pour ADMIN, agence d'origine
+  ou de retrait sinon). La reponse renvoie aussi un "curseur" a reutiliser comme
+  prochain "since".
+}
+
+settings {
+  encodeUrl: true
+}
