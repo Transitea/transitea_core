@@ -20,7 +20,7 @@
 		<mapstruct.version>1.5.5.Final</mapstruct.version>
 		<jjwt.version>0.12.6</jjwt.version>
 		<zxing.version>3.5.2</zxing.version>
-		<springdoc.version>2.7.0</springdoc.version>
+		<springdoc.version>3.0.3</springdoc.version>
 	</properties>
 
 	<dependencies>
