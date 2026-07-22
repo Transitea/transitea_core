@@ -13,12 +13,14 @@ import com.transitea.entity.enums.TypeCanal;
 import com.transitea.exception.AccesNonAutoriseException;
 import com.transitea.repository.NotificationRepository;
 import com.transitea.service.NotificationService;
+import com.transitea.service.QrCodeService;
 import com.transitea.service.WhatsAppService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -38,6 +40,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final JavaMailSender mailSender;
     private final WhatsAppService whatsAppService;
     private final NotificationRepository notificationRepository;
+    private final QrCodeService qrCodeService;
 
     @Value("${spring.mail.username:}")
     private String expediteurEmail;
@@ -48,10 +51,12 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationServiceImpl(
             JavaMailSender mailSender,
             WhatsAppService whatsAppService,
-            NotificationRepository notificationRepository) {
+            NotificationRepository notificationRepository,
+            QrCodeService qrCodeService) {
         this.mailSender = mailSender;
         this.whatsAppService = whatsAppService;
         this.notificationRepository = notificationRepository;
+        this.qrCodeService = qrCodeService;
     }
 
     @Override
@@ -71,13 +76,22 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private void notifierDestinataire(Colis colis, StatutColis ancienStatut) {
+        boolean aUnContact =
+                (colis.getDestinataireTelephone() != null && !colis.getDestinataireTelephone().isBlank())
+                        || (colis.getDestinataireEmail() != null && !colis.getDestinataireEmail().isBlank());
+
+        // Le destinataire doit presenter ce QR code au retrait (CDC 8.1/9.2) : joint
+        // en inline a l'email tant qu'il est notifie (ENREGISTRE, ARRIVE_AGENCE).
+        // Ne le genere que s'il y a effectivement un contact a notifier.
+        byte[] qrCode = aUnContact ? genererQrCodePourEmail(colis) : null;
         envoyerNotification(
                 colis,
                 colis.getDestinataireTelephone(),
                 colis.getDestinataireEmail(),
                 construireSujet(colis),
                 construireMessage(colis, ancienStatut),
-                construireCorpsHtml(colis, ancienStatut)
+                construireCorpsHtml(colis, ancienStatut, qrCode != null),
+                qrCode
         );
     }
 
@@ -89,17 +103,30 @@ public class NotificationServiceImpl implements NotificationService {
                 "Votre colis " + colis.getCodeTracking() + " a ete retire",
                 "Votre colis " + colis.getCodeTracking() + " a ete retire par le destinataire.",
                 "<p>Bonjour,</p><p>Votre colis <strong>" + colis.getCodeTracking()
-                        + "</strong> a bien ete retire par le destinataire.</p>"
+                        + "</strong> a bien ete retire par le destinataire.</p>",
+                null
         );
+    }
+
+    private byte[] genererQrCodePourEmail(Colis colis) {
+        try {
+            String lienTracking = baseUrl + "/suivi/" + colis.getCodeTracking();
+            return qrCodeService.generer(lienTracking, colis.getCodeTracking());
+        } catch (Exception e) {
+            journal.warn("Impossible de generer le QR code pour le colis {} : {}",
+                    colis.getCodeTracking(), e.getMessage());
+            return null;
+        }
     }
 
     /**
      * WhatsApp en canal prioritaire, repli automatique sur e-mail si le
-     * telephone est absent ou si l'envoi WhatsApp echoue.
+     * telephone est absent ou si l'envoi WhatsApp echoue. qrCode peut etre
+     * null (ex. notification a l'expediteur, qui n'en a pas besoin).
      */
     private void envoyerNotification(
             Colis colis, String telephone, String email,
-            String sujet, String messageTexte, String corpsHtml) {
+            String sujet, String messageTexte, String corpsHtml, byte[] qrCode) {
 
         if ((telephone == null || telephone.isBlank()) && (email == null || email.isBlank())) {
             journal.debug("Pas de notification possible (ni telephone ni email) pour le colis {}",
@@ -122,7 +149,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         try {
-            envoyerEmail(email, sujet, messageTexte, corpsHtml);
+            envoyerEmail(email, sujet, messageTexte, corpsHtml, qrCode);
             enregistrerNotification(colis, email, TypeCanal.EMAIL, messageTexte, StatutNotification.ENVOYE);
             journal.info("Notification email envoyee pour le colis {} a {}",
                     colis.getCodeTracking(), email);
@@ -153,18 +180,24 @@ public class NotificationServiceImpl implements NotificationService {
      * Envoie un email HTML avec une alternative texte brut (multipart/alternative)
      * et un nom d'expediteur lisible : deux signaux de legitimite qui reduisent
      * (sans l'eliminer) le risque de classement en spam d'un envoi Gmail SMTP,
-     * cf. limite connue du CDC 9.2.
+     * cf. limite connue du CDC 9.2. Le QR code, si fourni, est joint en inline
+     * (reference via cid:qrcode dans le HTML, cf. construireCorpsHtml).
      */
-    private void envoyerEmail(String destinataire, String sujet, String texteBrut, String corpsHtml)
+    private void envoyerEmail(String destinataire, String sujet, String texteBrut, String corpsHtml, byte[] qrCode)
             throws MessagingException, UnsupportedEncodingException {
 
         MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        MimeMessageHelper helper = new MimeMessageHelper(
+                message, MimeMessageHelper.MULTIPART_MODE_RELATED, "UTF-8");
 
         helper.setFrom(expediteurEmail, "Transitea");
         helper.setTo(destinataire);
         helper.setSubject(sujet);
         helper.setText(texteBrut, corpsHtml);
+
+        if (qrCode != null) {
+            helper.addInline("qrcode", new ByteArrayResource(qrCode), "image/png");
+        }
 
         mailSender.send(message);
     }
@@ -182,12 +215,22 @@ public class NotificationServiceImpl implements NotificationService {
                 colis.getStatutActuel().name());
     }
 
-    private String construireCorpsHtml(Colis colis, StatutColis ancienStatut) {
+    private String construireCorpsHtml(Colis colis, StatutColis ancienStatut, boolean avecQrCode) {
         // /suivi/{code} : page de suivi publique du frontend (CDC 8.3), pas l'API backend.
         String lienTracking = baseUrl + "/suivi/" + colis.getCodeTracking();
         String ancienStatutLabel = ancienStatut != null
                 ? formaterStatut(ancienStatut)
                 : "Nouveau colis";
+
+        // cid:qrcode reference l'image jointe en inline par envoyerEmail (CDC 9.2 :
+        // "Presentez ce QR code lors du retrait").
+        String blocQrCode = avecQrCode ? """
+                <div style="text-align: center; margin: 20px 0;">
+                  <p style="margin: 0 0 10px; font-weight: bold;">Presentez ce QR code lors du retrait :</p>
+                  <img src="cid:qrcode" alt="QR code du colis" width="200" height="200"
+                       style="display: inline-block; border: 1px solid #e5e7eb; border-radius: 8px;" />
+                </div>
+                """ : "";
 
         return """
                 <!DOCTYPE html>
@@ -212,6 +255,8 @@ public class NotificationServiceImpl implements NotificationService {
                       </p>
                     </div>
 
+                    %s
+
                     <div style="text-align: center; margin: 30px 0;">
                       <a href="%s"
                          style="background-color: #1a56db; color: white; padding: 12px 24px;
@@ -232,6 +277,7 @@ public class NotificationServiceImpl implements NotificationService {
                 colis.getCodeTracking(),
                 ancienStatutLabel,
                 formaterStatut(colis.getStatutActuel()),
+                blocQrCode,
                 lienTracking
         );
     }

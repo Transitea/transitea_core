@@ -10,6 +10,7 @@ import com.transitea.entity.enums.StatutNotification;
 import com.transitea.entity.enums.TypeCanal;
 import com.transitea.exception.AccesNonAutoriseException;
 import com.transitea.repository.NotificationRepository;
+import com.transitea.service.QrCodeService;
 import com.transitea.service.WhatsAppService;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -49,6 +51,9 @@ class NotificationServiceImplTest {
     @Mock
     private NotificationRepository notificationRepository;
 
+    @Mock
+    private QrCodeService qrCodeService;
+
     @InjectMocks
     private NotificationServiceImpl notificationService;
 
@@ -60,6 +65,7 @@ class NotificationServiceImplTest {
     void initialiser() {
         ReflectionTestUtils.setField(notificationService, "expediteurEmail", "noreply@transitea.cd");
         ReflectionTestUtils.setField(notificationService, "baseUrl", "http://localhost:8080");
+        lenient().when(qrCodeService.generer(anyString(), anyString())).thenReturn(new byte[]{1, 2, 3});
 
         Utilisateur agent = Utilisateur.builder()
                 .nom("Lumbu")
@@ -205,6 +211,39 @@ class NotificationServiceImplTest {
 
         assertThat(captor.getValue().getMessage())
                 .contains("TRA-2026-ABC123");
+    }
+
+    @Test
+    void doit_generer_et_joindre_le_qrcode_pour_le_destinataire() {
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        notificationService.notifierChangementStatut(colisAvecEmail, StatutColis.ENREGISTRE);
+
+        verify(qrCodeService).generer(
+                eq("http://localhost:8080/suivi/TRA-2026-ABC123"), eq("TRA-2026-ABC123"));
+    }
+
+    @Test
+    void doit_ne_pas_generer_de_qrcode_quand_destinataire_sans_contact() {
+        notificationService.notifierChangementStatut(colisSansContact, StatutColis.ENREGISTRE);
+
+        verify(qrCodeService, never()).generer(anyString(), anyString());
+    }
+
+    @Test
+    void doit_ne_pas_bloquer_lenvoi_quand_la_generation_du_qrcode_echoue() {
+        when(qrCodeService.generer(anyString(), anyString()))
+                .thenThrow(new RuntimeException("Erreur generation QR"));
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        notificationService.notifierChangementStatut(colisAvecEmail, StatutColis.ENREGISTRE);
+
+        verify(mailSender).send(any(MimeMessage.class));
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatut()).isEqualTo(StatutNotification.ENVOYE);
     }
 
     @Test
