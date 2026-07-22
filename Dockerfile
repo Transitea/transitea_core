@@ -1,5 +1,5 @@
 # --- Etape 1 : Construction de l application ---
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM eclipse-temurin:25-jdk-alpine AS build
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN ./mvnw package -DskipTests -B --no-transfer-progress
 
 
 # --- Etape 2 : Image d execution legere ---
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 WORKDIR /app
 
