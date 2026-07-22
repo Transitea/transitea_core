@@ -101,4 +101,16 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
     List<LocalDateTime> trouverDatesCreationEntreParAgence(
             @Param("agence") Agence agence,
             @Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT DISTINCT c FROM Colis c WHERE c.supprime = false " +
+           "AND (c.dateCreation > :depuis " +
+           "OR EXISTS (SELECT 1 FROM MiseAJourStatut m WHERE m.colis = c AND m.dateCreation > :depuis))")
+    List<Colis> trouverModifiesDepuis(@Param("depuis") LocalDateTime depuis);
+
+    @Query("SELECT DISTINCT c FROM Colis c WHERE c.supprime = false " +
+           "AND (c.agenceOrigine = :agence OR c.agenceRetrait = :agence) " +
+           "AND (c.dateCreation > :depuis " +
+           "OR EXISTS (SELECT 1 FROM MiseAJourStatut m WHERE m.colis = c AND m.dateCreation > :depuis))")
+    List<Colis> trouverModifiesDepuisParAgence(
+            @Param("agence") Agence agence, @Param("depuis") LocalDateTime depuis);
 }
