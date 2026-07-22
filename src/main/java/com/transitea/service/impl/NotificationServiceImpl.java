@@ -27,6 +27,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Objects;
 
 @Service
@@ -121,7 +122,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         try {
-            envoyerEmail(email, sujet, corpsHtml);
+            envoyerEmail(email, sujet, messageTexte, corpsHtml);
             enregistrerNotification(colis, email, TypeCanal.EMAIL, messageTexte, StatutNotification.ENVOYE);
             journal.info("Notification email envoyee pour le colis {} a {}",
                     colis.getCodeTracking(), email);
@@ -148,16 +149,22 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.save(notification);
     }
 
-    private void envoyerEmail(String destinataire, String sujet, String corpsHtml)
-            throws MessagingException {
+    /**
+     * Envoie un email HTML avec une alternative texte brut (multipart/alternative)
+     * et un nom d'expediteur lisible : deux signaux de legitimite qui reduisent
+     * (sans l'eliminer) le risque de classement en spam d'un envoi Gmail SMTP,
+     * cf. limite connue du CDC 9.2.
+     */
+    private void envoyerEmail(String destinataire, String sujet, String texteBrut, String corpsHtml)
+            throws MessagingException, UnsupportedEncodingException {
 
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setFrom(expediteurEmail);
+        helper.setFrom(expediteurEmail, "Transitea");
         helper.setTo(destinataire);
         helper.setSubject(sujet);
-        helper.setText(corpsHtml, true);
+        helper.setText(texteBrut, corpsHtml);
 
         mailSender.send(message);
     }

@@ -75,22 +75,28 @@ public class RecapitulatifQuotidienJob implements Job {
                     agence, StatutColis.RETIRE, debutJournee, maintenant);
 
             String corpsHtml = construireCorpsHtml(agence, nbEnregistres, nbRetires);
+            String texteBrut = construireTexteBrut(agence, nbEnregistres, nbRetires);
 
             for (Utilisateur operateur : operateurs) {
-                envoyerRecap(operateur.getEmail(), agence.getNom(), corpsHtml);
+                envoyerRecap(operateur.getEmail(), agence.getNom(), texteBrut, corpsHtml);
             }
         }
     }
 
-    private void envoyerRecap(String destinataire, String nomAgence, String corpsHtml) {
+    /**
+     * Nom d'expediteur lisible + alternative texte brut (multipart/alternative) :
+     * deux signaux de legitimite qui reduisent le risque de classement en spam
+     * d'un envoi Gmail SMTP (limite connue, cf. CDC 9.2).
+     */
+    private void envoyerRecap(String destinataire, String nomAgence, String texteBrut, String corpsHtml) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(expediteurEmail);
+            helper.setFrom(expediteurEmail, "Transitea");
             helper.setTo(destinataire);
             helper.setSubject("Recapitulatif quotidien - " + nomAgence);
-            helper.setText(corpsHtml, true);
+            helper.setText(texteBrut, corpsHtml);
 
             mailSender.send(message);
             journal.info("Recapitulatif envoye a {} pour l'agence {}", destinataire, nomAgence);
@@ -123,6 +129,17 @@ public class RecapitulatifQuotidienJob implements Job {
                   </div>
                 </body>
                 </html>
+                """.formatted(agence.getNom(), nbEnregistres, nbRetires);
+    }
+
+    private String construireTexteBrut(Agence agence, long nbEnregistres, long nbRetires) {
+        return """
+                Recapitulatif quotidien - %s
+
+                Colis enregistres : %d
+                Colis retires : %d
+
+                Ce message est genere automatiquement, merci de ne pas y repondre.
                 """.formatted(agence.getNom(), nbEnregistres, nbRetires);
     }
 }
