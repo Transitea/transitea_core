@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,8 @@ import java.time.LocalDateTime;
 public class AuthServiceImpl implements AuthService {
 
     private static final Logger journal = LoggerFactory.getLogger(AuthServiceImpl.class);
+    private static final int MAX_TENTATIVES_CONNEXION = 5;
+    private static final long DUREE_VERROUILLAGE_MINUTES = 15;
 
     private final UtilisateurRepository utilisateurRepository;
     private final AgenceRepository agenceRepository;
@@ -94,17 +97,42 @@ public class AuthServiceImpl implements AuthService {
         try {
             gestionnaireAuthentification.authenticate(
                     new UsernamePasswordAuthenticationToken(requete.email(), requete.motDePasse()));
+        } catch (LockedException e) {
+            throw new ErreurMetier(
+                    "Compte temporairement verrouille suite a plusieurs echecs de connexion. Reessayez dans quelques minutes.");
         } catch (BadCredentialsException e) {
+            enregistrerEchecConnexion(requete.email());
             throw new ErreurMetier("Email ou mot de passe incorrect");
         }
 
         Utilisateur utilisateur = utilisateurRepository.findByEmailAndSupprimeFalse(requete.email())
                 .orElseThrow(() -> new EntiteNonTrouveeException("Utilisateur", requete.email()));
 
+        reinitialiserTentativesEchouees(utilisateur);
         refreshTokenRepository.revoquerTousLesTokensUtilisateur(utilisateur);
 
         journal.info("Connexion reussie pour : {}", utilisateur.getEmail());
         return genererReponseAuth(utilisateur);
+    }
+
+    private void enregistrerEchecConnexion(String email) {
+        utilisateurRepository.findByEmailAndSupprimeFalse(email).ifPresent(utilisateur -> {
+            int tentatives = utilisateur.getTentativesEchouees() + 1;
+            utilisateur.setTentativesEchouees(tentatives);
+            if (tentatives >= MAX_TENTATIVES_CONNEXION) {
+                utilisateur.setVerrouilleJusqua(LocalDateTime.now().plusMinutes(DUREE_VERROUILLAGE_MINUTES));
+                journal.warn("Compte verrouille apres {} echecs de connexion : {}", tentatives, email);
+            }
+            utilisateurRepository.save(utilisateur);
+        });
+    }
+
+    private void reinitialiserTentativesEchouees(Utilisateur utilisateur) {
+        if (utilisateur.getTentativesEchouees() > 0 || utilisateur.getVerrouilleJusqua() != null) {
+            utilisateur.setTentativesEchouees(0);
+            utilisateur.setVerrouilleJusqua(null);
+            utilisateurRepository.save(utilisateur);
+        }
     }
 
     @Override

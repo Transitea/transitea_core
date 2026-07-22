@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -180,6 +181,53 @@ class AuthServiceImplTest {
                 .hasMessageContaining("incorrect");
 
         verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void doit_verrouiller_compte_apres_cinq_echecs_de_connexion() {
+        ConnexionRequete requete = new ConnexionRequete("louange@transitea.cd", "MauvaisMotDePasse");
+        when(gestionnaireAuthentification.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("Bad credentials"));
+        when(utilisateurRepository.findByEmailAndSupprimeFalse("louange@transitea.cd"))
+                .thenReturn(Optional.of(utilisateur));
+
+        for (int i = 0; i < 5; i++) {
+            assertThatThrownBy(() -> authService.connecter(requete)).isInstanceOf(ErreurMetier.class);
+        }
+
+        assertThat(utilisateur.getTentativesEchouees()).isEqualTo(5);
+        assertThat(utilisateur.getVerrouilleJusqua()).isAfter(LocalDateTime.now());
+    }
+
+    @Test
+    void doit_refuser_connexion_quand_compte_verrouille_meme_avec_bon_mot_de_passe() {
+        ConnexionRequete requete = new ConnexionRequete("louange@transitea.cd", "MotDePasse123!");
+        when(gestionnaireAuthentification.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new LockedException("User account is locked"));
+
+        assertThatThrownBy(() -> authService.connecter(requete))
+                .isInstanceOf(ErreurMetier.class)
+                .hasMessageContaining("verrouille");
+
+        verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void doit_reinitialiser_tentatives_echouees_apres_connexion_reussie() {
+        utilisateur.setTentativesEchouees(3);
+        ConnexionRequete requete = new ConnexionRequete("louange@transitea.cd", "MotDePasse123!");
+        when(utilisateurRepository.findByEmailAndSupprimeFalse(requete.email()))
+                .thenReturn(Optional.of(utilisateur));
+        when(serviceJwt.genererAccessToken(any())).thenReturn("access-token");
+        when(serviceJwt.genererRefreshToken(any())).thenReturn("refresh-token");
+        when(proprietesJwt.expirationAccessMs()).thenReturn(3600000L);
+        when(refreshTokenRepository.save(any())).thenReturn(refreshTokenValide);
+
+        authService.connecter(requete);
+
+        assertThat(utilisateur.getTentativesEchouees()).isEqualTo(0);
+        assertThat(utilisateur.getVerrouilleJusqua()).isNull();
+        verify(utilisateurRepository).save(utilisateur);
     }
 
     // --- rafraichir ---
