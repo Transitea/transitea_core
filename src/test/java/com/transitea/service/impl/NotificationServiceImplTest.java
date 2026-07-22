@@ -1,5 +1,6 @@
 package com.transitea.service.impl;
 
+import com.transitea.entity.Agence;
 import com.transitea.entity.Colis;
 import com.transitea.entity.Notification;
 import com.transitea.entity.Utilisateur;
@@ -7,6 +8,7 @@ import com.transitea.entity.enums.Role;
 import com.transitea.entity.enums.StatutColis;
 import com.transitea.entity.enums.StatutNotification;
 import com.transitea.entity.enums.TypeCanal;
+import com.transitea.exception.AccesNonAutoriseException;
 import com.transitea.repository.NotificationRepository;
 import com.transitea.service.WhatsAppService;
 import jakarta.mail.internet.MimeMessage;
@@ -17,12 +19,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -223,5 +229,63 @@ class NotificationServiceImplTest {
 
         // 1 notification destinataire + 1 notification expediteur
         verify(notificationRepository, org.mockito.Mockito.times(2)).save(any(Notification.class));
+    }
+
+    @Test
+    void doit_deduire_la_cible_expediteur_quand_le_contact_correspond_a_lexpediteur() {
+        colisAvecEmail.setExpediteurEmail("jean@example.com");
+        Notification notification = Notification.builder()
+                .colis(colisAvecEmail)
+                .destinataire("jean@example.com")
+                .typeCanal(TypeCanal.EMAIL)
+                .message("Colis retire")
+                .statut(StatutNotification.ENVOYE)
+                .nbTentatives(1)
+                .build();
+        notification.setId(10L);
+
+        Utilisateur admin = Utilisateur.builder().role(Role.ADMIN).build();
+        Pageable pageable = PageRequest.of(0, 20);
+        when(notificationRepository.findAllByOrderByDateCreationDesc(pageable))
+                .thenReturn(new PageImpl<>(java.util.List.of(notification)));
+
+        var resultat = notificationService.lister(admin, pageable);
+
+        assertThat(resultat.contenu()).hasSize(1);
+        assertThat(resultat.contenu().get(0).cible()).isEqualTo("EXPEDITEUR");
+        assertThat(resultat.contenu().get(0).codeTracking()).isEqualTo("TRA-2026-ABC123");
+    }
+
+    @Test
+    void doit_deduire_la_cible_destinataire_par_defaut() {
+        Notification notification = Notification.builder()
+                .colis(colisAvecEmail)
+                .destinataire("marie@example.com")
+                .typeCanal(TypeCanal.EMAIL)
+                .message("Colis enregistre")
+                .statut(StatutNotification.ENVOYE)
+                .nbTentatives(1)
+                .build();
+        notification.setId(11L);
+
+        Agence agence = Agence.builder().nom("Agence Paris").build();
+        agence.setId(1L);
+        Utilisateur agent = Utilisateur.builder().role(Role.AGENT).agence(agence).build();
+        Pageable pageable = PageRequest.of(0, 20);
+        when(notificationRepository.findByAgenceOrderByDateCreationDesc(agence, pageable))
+                .thenReturn(new PageImpl<>(java.util.List.of(notification)));
+
+        var resultat = notificationService.lister(agent, pageable);
+
+        assertThat(resultat.contenu().get(0).cible()).isEqualTo("DESTINATAIRE");
+    }
+
+    @Test
+    void doit_refuser_un_utilisateur_sans_agence() {
+        Utilisateur sansAgence = Utilisateur.builder().role(Role.AGENT).build();
+        Pageable pageable = PageRequest.of(0, 20);
+
+        assertThatThrownBy(() -> notificationService.lister(sansAgence, pageable))
+                .isInstanceOf(AccesNonAutoriseException.class);
     }
 }

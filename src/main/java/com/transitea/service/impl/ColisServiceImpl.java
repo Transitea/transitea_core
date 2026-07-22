@@ -5,6 +5,7 @@ import com.transitea.dto.request.MiseAJourStatutRequete;
 import com.transitea.dto.response.ColisReponse;
 import com.transitea.dto.response.ReponsePagee;
 import com.transitea.dto.response.StatistiquesReponse;
+import com.transitea.dto.response.VolumeJourReponse;
 import com.transitea.entity.Agence;
 import com.transitea.entity.Colis;
 import com.transitea.entity.MiseAJourStatut;
@@ -31,9 +32,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -270,6 +274,34 @@ public class ColisServiceImpl implements ColisService {
 
         long total = parStatut.values().stream().mapToLong(Long::longValue).sum();
         return new StatistiquesReponse(total, parStatut);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VolumeJourReponse> obtenirVolumeQuotidien(
+            Utilisateur utilisateur, LocalDate debut, LocalDate fin) {
+
+        LocalDateTime debutDt = debut.atStartOfDay();
+        LocalDateTime finDt = fin.atTime(23, 59, 59);
+
+        List<LocalDateTime> dates = utilisateur.getRole() == Role.ADMIN
+                ? colisRepository.trouverDatesCreationEntre(debutDt, finDt)
+                : colisRepository.trouverDatesCreationEntreParAgence(
+                        agenceDeLUtilisateur(utilisateur), debutDt, finDt);
+
+        // TreeMap : jours tries chronologiquement, initialises a 0 pour ne pas
+        // laisser de trous dans le graphique cote front.
+        Map<LocalDate, Long> parJour = new TreeMap<>();
+        for (LocalDate jour = debut; !jour.isAfter(fin); jour = jour.plusDays(1)) {
+            parJour.put(jour, 0L);
+        }
+        for (LocalDateTime date : dates) {
+            parJour.merge(date.toLocalDate(), 1L, Long::sum);
+        }
+
+        return parJour.entrySet().stream()
+                .map(entree -> new VolumeJourReponse(entree.getKey(), entree.getValue()))
+                .toList();
     }
 
     private Colis recupererColisOuEchouer(Long id) {

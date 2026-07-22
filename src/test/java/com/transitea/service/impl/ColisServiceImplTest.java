@@ -625,4 +625,42 @@ class ColisServiceImplTest {
         verify(colisRepository, never())
                 .countByStatutActuelAndSupprimeFalse(any());
     }
+
+    // --- obtenirVolumeQuotidien ---
+
+    @Test
+    void doit_regrouper_le_volume_par_jour_sans_trou_pour_un_admin() {
+        java.time.LocalDate debut = java.time.LocalDate.of(2026, 7, 1);
+        java.time.LocalDate fin = java.time.LocalDate.of(2026, 7, 3);
+
+        when(colisRepository.trouverDatesCreationEntre(any(), any())).thenReturn(List.of(
+                java.time.LocalDateTime.of(2026, 7, 1, 9, 0),
+                java.time.LocalDateTime.of(2026, 7, 1, 14, 0),
+                java.time.LocalDateTime.of(2026, 7, 3, 10, 0)
+        ));
+
+        var resultat = colisService.obtenirVolumeQuotidien(admin, debut, fin);
+
+        assertThat(resultat).hasSize(3);
+        assertThat(resultat.get(0).date()).isEqualTo(debut);
+        assertThat(resultat.get(0).total()).isEqualTo(2);
+        assertThat(resultat.get(1).total()).isEqualTo(0);
+        assertThat(resultat.get(2).total()).isEqualTo(1);
+        verify(colisRepository, never()).trouverDatesCreationEntreParAgence(any(), any(), any());
+    }
+
+    @Test
+    void doit_scoper_le_volume_quotidien_a_lagence_pour_un_agent() {
+        java.time.LocalDate debut = java.time.LocalDate.of(2026, 7, 1);
+        java.time.LocalDate fin = java.time.LocalDate.of(2026, 7, 1);
+
+        when(colisRepository.trouverDatesCreationEntreParAgence(eq(agenceKinshasa), any(), any()))
+                .thenReturn(List.of(java.time.LocalDateTime.of(2026, 7, 1, 8, 0)));
+
+        var resultat = colisService.obtenirVolumeQuotidien(agent, debut, fin);
+
+        assertThat(resultat).hasSize(1);
+        assertThat(resultat.get(0).total()).isEqualTo(1);
+        verify(colisRepository, never()).trouverDatesCreationEntre(any(), any());
+    }
 }

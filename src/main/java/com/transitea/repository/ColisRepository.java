@@ -1,5 +1,6 @@
 package com.transitea.repository;
 
+import com.transitea.dto.response.ClientReponse;
 import com.transitea.entity.Agence;
 import com.transitea.entity.Colis;
 import com.transitea.entity.Utilisateur;
@@ -73,4 +74,31 @@ public interface ColisRepository extends JpaRepository<Colis, Long> {
     @Query("SELECT c FROM Colis c WHERE c.supprime = false " +
            "AND c.dateCreation < :dateLimite")
     List<Colis> trouverColisAArchiver(@Param("dateLimite") LocalDateTime dateLimite);
+
+    @Query("SELECT new com.transitea.dto.response.ClientReponse(" +
+           "c.destinataireNom, c.destinataireTelephone, c.destinataireVille, COUNT(c)) " +
+           "FROM Colis c WHERE c.supprime = false " +
+           "GROUP BY c.destinataireNom, c.destinataireTelephone, c.destinataireVille " +
+           "ORDER BY COUNT(c) DESC")
+    Page<ClientReponse> agregerClients(Pageable pageable);
+
+    @Query("SELECT new com.transitea.dto.response.ClientReponse(" +
+           "c.destinataireNom, c.destinataireTelephone, c.destinataireVille, COUNT(c)) " +
+           "FROM Colis c WHERE c.supprime = false " +
+           "AND (c.agenceOrigine = :agence OR c.agenceRetrait = :agence) " +
+           "GROUP BY c.destinataireNom, c.destinataireTelephone, c.destinataireVille " +
+           "ORDER BY COUNT(c) DESC")
+    Page<ClientReponse> agregerClientsParAgence(@Param("agence") Agence agence, Pageable pageable);
+
+    @Query("SELECT c.dateCreation FROM Colis c WHERE c.supprime = false " +
+           "AND c.dateCreation BETWEEN :debut AND :fin")
+    List<LocalDateTime> trouverDatesCreationEntre(
+            @Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT c.dateCreation FROM Colis c WHERE c.supprime = false " +
+           "AND (c.agenceOrigine = :agence OR c.agenceRetrait = :agence) " +
+           "AND c.dateCreation BETWEEN :debut AND :fin")
+    List<LocalDateTime> trouverDatesCreationEntreParAgence(
+            @Param("agence") Agence agence,
+            @Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
 }

@@ -176,4 +176,14 @@ class ColisControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(4));
     }
+
+    @Test
+    void doit_retourner_le_volume_quotidien() throws Exception {
+        when(colisService.obtenirVolumeQuotidien(any(), any(), any())).thenReturn(List.of(
+                new com.transitea.dto.response.VolumeJourReponse(java.time.LocalDate.of(2026, 7, 1), 5)));
+
+        mockMvc.perform(get("/v1/colis/volume-quotidien?debut=2026-07-01&fin=2026-07-01"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].total").value(5));
+    }
 }
