@@ -84,4 +84,64 @@ class WhatsAppServiceImplTest {
         assertThat(resultat).isFalse();
         verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), eq(String.class));
     }
+
+    // --- envoyerImage (QR code) ---
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void doit_retourner_true_quand_upload_et_envoi_image_reussissent() {
+        ResponseEntity<WhatsAppServiceImpl.MediaUploadReponse> uploadReponse =
+                new ResponseEntity<>(new WhatsAppServiceImpl.MediaUploadReponse("media-123"), HttpStatus.OK);
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class)))
+                .thenReturn((ResponseEntity) uploadReponse)
+                .thenReturn(new ResponseEntity<>("{}", HttpStatus.OK));
+
+        boolean resultat = whatsAppService.envoyerImage("+243900000011", new byte[]{1, 2, 3}, "Legende");
+
+        assertThat(resultat).isTrue();
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void doit_retourner_false_quand_upload_media_echoue() {
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class)))
+                .thenReturn((ResponseEntity) new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+
+        boolean resultat = whatsAppService.envoyerImage("+243900000011", new byte[]{1, 2, 3}, "Legende");
+
+        assertThat(resultat).isFalse();
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void doit_retourner_false_quand_envoi_du_message_image_echoue_apres_upload_reussi() {
+        ResponseEntity<WhatsAppServiceImpl.MediaUploadReponse> uploadReponse =
+                new ResponseEntity<>(new WhatsAppServiceImpl.MediaUploadReponse("media-123"), HttpStatus.OK);
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class)))
+                .thenReturn((ResponseEntity) uploadReponse)
+                .thenReturn(new ResponseEntity<>("{}", HttpStatus.BAD_REQUEST));
+
+        boolean resultat = whatsAppService.envoyerImage("+243900000011", new byte[]{1, 2, 3}, "Legende");
+
+        assertThat(resultat).isFalse();
+    }
+
+    @Test
+    void doit_retourner_false_quand_image_absente() {
+        boolean resultat = whatsAppService.envoyerImage("+243900000011", null, "Legende");
+
+        assertThat(resultat).isFalse();
+        verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any(Class.class));
+    }
+
+    @Test
+    void doit_retourner_false_quand_envoi_image_et_whatsapp_non_configure() {
+        ProprietesWhatsApp proprietesVides = new ProprietesWhatsApp("", "", "https://graph.facebook.com/v18.0");
+        WhatsAppServiceImpl serviceNonConfigure = new WhatsAppServiceImpl(restTemplate, proprietesVides);
+
+        boolean resultat = serviceNonConfigure.envoyerImage("+243900000011", new byte[]{1, 2, 3}, "Legende");
+
+        assertThat(resultat).isFalse();
+        verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any(Class.class));
+    }
 }

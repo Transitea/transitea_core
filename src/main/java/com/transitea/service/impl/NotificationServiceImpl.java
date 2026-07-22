@@ -120,6 +120,18 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
+     * QR code en image WhatsApp quand disponible (CDC 9.2 : "Support media...
+     * ideal pour transmettre le QR code"), repli sur un simple message texte
+     * si pas de QR ou si l'envoi de l'image echoue (ex. media rejete par Meta).
+     */
+    private boolean envoyerWhatsApp(String telephone, String messageTexte, byte[] qrCode) {
+        if (qrCode != null && whatsAppService.envoyerImage(telephone, qrCode, messageTexte)) {
+            return true;
+        }
+        return whatsAppService.envoyerMessage(telephone, messageTexte);
+    }
+
+    /**
      * WhatsApp en canal prioritaire, repli automatique sur e-mail si le
      * telephone est absent ou si l'envoi WhatsApp echoue. qrCode peut etre
      * null (ex. notification a l'expediteur, qui n'en a pas besoin).
@@ -134,8 +146,7 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
-        if (telephone != null && !telephone.isBlank()
-                && whatsAppService.envoyerMessage(telephone, messageTexte)) {
+        if (telephone != null && !telephone.isBlank() && envoyerWhatsApp(telephone, messageTexte, qrCode)) {
             enregistrerNotification(colis, telephone, TypeCanal.WHATSAPP, messageTexte, StatutNotification.ENVOYE);
             journal.info("Notification WhatsApp envoyee pour le colis {} a {}",
                     colis.getCodeTracking(), telephone);
