@@ -176,7 +176,8 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private String construireCorpsHtml(Colis colis, StatutColis ancienStatut) {
-        String lienTracking = baseUrl + "/tracking/" + colis.getCodeTracking();
+        // /suivi/{code} : page de suivi publique du frontend (CDC 8.3), pas l'API backend.
+        String lienTracking = baseUrl + "/suivi/" + colis.getCodeTracking();
         String ancienStatutLabel = ancienStatut != null
                 ? formaterStatut(ancienStatut)
                 : "Nouveau colis";

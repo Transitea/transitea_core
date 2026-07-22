@@ -256,7 +256,8 @@ public class ColisServiceImpl implements ColisService {
     public byte[] genererQrCode(Long id, Utilisateur utilisateur) {
         Colis colis = recupererColisOuEchouer(id);
         verifierAcces(colis, utilisateur);
-        String urlTracking = baseUrl + "/v1/tracking/" + colis.getCodeTracking();
+        // /suivi/{code} : page de suivi publique du frontend (CDC 8.3), pas l'API backend.
+        String urlTracking = baseUrl + "/suivi/" + colis.getCodeTracking();
         return qrCodeService.generer(urlTracking, colis.getCodeTracking());
     }
 

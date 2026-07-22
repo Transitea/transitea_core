@@ -536,7 +536,7 @@ class ColisServiceImplTest {
     @Test
     void doit_generer_qrcode_quand_agent_de_lagence_concernee() {
         byte[] qrCodeBytes = new byte[]{1, 2, 3};
-        String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
+        String urlTracking = "http://localhost:8080/suivi/TRA-2026-ABC123";
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(qrCodeService.generer(eq(urlTracking), anyString())).thenReturn(qrCodeBytes);
 
@@ -549,7 +549,7 @@ class ColisServiceImplTest {
     @Test
     void doit_generer_qrcode_quand_admin() {
         byte[] qrCodeBytes = new byte[]{1, 2, 3};
-        String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
+        String urlTracking = "http://localhost:8080/suivi/TRA-2026-ABC123";
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(qrCodeService.generer(eq(urlTracking), anyString())).thenReturn(qrCodeBytes);
 
@@ -561,7 +561,7 @@ class ColisServiceImplTest {
     @Test
     void doit_generer_qrcode_quand_operateur_de_lagence_concernee() {
         byte[] qrCodeBytes = new byte[]{1, 2, 3};
-        String urlTracking = "http://localhost:8080/v1/tracking/TRA-2026-ABC123";
+        String urlTracking = "http://localhost:8080/suivi/TRA-2026-ABC123";
         when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
         when(qrCodeService.generer(eq(urlTracking), anyString())).thenReturn(qrCodeBytes);
 
