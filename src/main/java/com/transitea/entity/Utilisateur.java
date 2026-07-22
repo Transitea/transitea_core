@@ -19,6 +19,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -68,6 +69,13 @@ public class Utilisateur extends EntiteBase implements UserDetails {
     @Builder.Default
     private Boolean supprime = false;
 
+    @Column(name = "tentatives_echouees", nullable = false)
+    @Builder.Default
+    private Integer tentativesEchouees = 0;
+
+    @Column(name = "verrouille_jusqua")
+    private LocalDateTime verrouilleJusqua;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
@@ -90,7 +98,8 @@ public class Utilisateur extends EntiteBase implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return statut == StatutUtilisateur.ACTIF;
+        return statut == StatutUtilisateur.ACTIF
+                && (verrouilleJusqua == null || verrouilleJusqua.isBefore(LocalDateTime.now()));
     }
 
     @Override

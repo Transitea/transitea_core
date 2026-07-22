@@ -1,6 +1,7 @@
 package com.transitea.config;
 
 import com.transitea.security.FiltreAuthentificationJwt;
+import com.transitea.security.FiltreLimitationDebit;
 import com.transitea.security.GestionnaireAccesRefuse;
 import com.transitea.security.PointEntreeNonAutorise;
 import com.transitea.security.ServiceDetailsUtilisateur;
@@ -33,16 +34,19 @@ public class ConfigurationSecurite {
 
     private final ServiceDetailsUtilisateur serviceDetailsUtilisateur;
     private final FiltreAuthentificationJwt filtreAuthentificationJwt;
+    private final FiltreLimitationDebit filtreLimitationDebit;
     private final PointEntreeNonAutorise pointEntreeNonAutorise;
     private final GestionnaireAccesRefuse gestionnaireAccesRefuse;
 
     public ConfigurationSecurite(
             ServiceDetailsUtilisateur serviceDetailsUtilisateur,
             FiltreAuthentificationJwt filtreAuthentificationJwt,
+            FiltreLimitationDebit filtreLimitationDebit,
             PointEntreeNonAutorise pointEntreeNonAutorise,
             GestionnaireAccesRefuse gestionnaireAccesRefuse) {
         this.serviceDetailsUtilisateur = serviceDetailsUtilisateur;
         this.filtreAuthentificationJwt = filtreAuthentificationJwt;
+        this.filtreLimitationDebit = filtreLimitationDebit;
         this.pointEntreeNonAutorise = pointEntreeNonAutorise;
         this.gestionnaireAccesRefuse = gestionnaireAccesRefuse;
     }
@@ -75,7 +79,8 @@ public class ConfigurationSecurite {
                         .accessDeniedHandler(gestionnaireAccesRefuse)
                 )
                 .authenticationProvider(fournisseurAuthentification())
-                .addFilterBefore(filtreAuthentificationJwt, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(filtreAuthentificationJwt, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(filtreLimitationDebit, FiltreAuthentificationJwt.class);
 
         return http.build();
     }
