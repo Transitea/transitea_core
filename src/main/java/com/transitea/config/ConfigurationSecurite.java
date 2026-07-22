@@ -61,6 +61,8 @@ public class ConfigurationSecurite {
                                 "/v1/auth/refresh",
                                 "/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/tracking/**").permitAll()
+                        // Public : necessaire pour peupler le choix d'agence sur la page d'inscription
+                        .requestMatchers(HttpMethod.GET, "/v1/agences").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(
                                 "/swagger-ui.html",
