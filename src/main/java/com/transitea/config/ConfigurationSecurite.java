@@ -40,7 +40,7 @@ public class ConfigurationSecurite {
     private final PointEntreeNonAutorise pointEntreeNonAutorise;
     private final GestionnaireAccesRefuse gestionnaireAccesRefuse;
 
-    @Value("${application.cors.allowed-origins}")
+    @Value("${application.cors.allowed-origins:http://localhost:5173,http://localhost:4173}")
     private String origineAutorisees;
 
     public ConfigurationSecurite(
