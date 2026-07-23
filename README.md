@@ -2,8 +2,6 @@
 
 API REST de gestion et de suivi de colis. Spring Boot 3.4 / Java 21 / PostgreSQL.
 
-> Pour lancer l'application complète (backend + frontend + BDD) en une seule commande, voir le [README à la racine du dépôt](../../README.md).
-
 ## Prérequis
 
 - Java 21 (JDK)
@@ -59,6 +57,18 @@ docker-compose -f docker-compose.dev.yml down
 ```bash
 ./mvnw test
 ```
+
+## Accès de test
+
+En activant le profil Spring `dev` (`SPRING_PROFILES_ACTIVE=dev`), un jeu de données de test (agences, colis, historique) et 3 comptes sont créés automatiquement au premier démarrage, **si la base est vide** (voir `src/main/java/com/transitea/config/DataInitialiseur.java`) :
+
+| Rôle | Email | Mot de passe |
+|---|---|---|
+| ADMIN | `admin@transitea.fr` | `admin123` |
+| OPERATEUR | `operateur@transitea.fr` | `operateur123` |
+| AGENT | `agent@transitea.fr` | `agent123` |
+
+Ces comptes sont destinés au développement/test uniquement — ne jamais activer le profil `dev` en production. Une inscription libre est aussi possible via `POST /v1/auth/register` (public, voir `AuthController`).
 
 ## Variables d'environnement principales
 
