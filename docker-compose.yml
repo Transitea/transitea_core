@@ -65,9 +65,17 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
+      - postgres
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      # Reprend les identifiants Postgres du service app pour le dashboard metier
+      # (lecture seule via des requetes SQL, cf. monitoring/grafana/provisioning/datasources)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: transitea_db
+      DB_USERNAME: transitea
+      DB_PASSWORD: ${DB_PASSWORD:-transitea}
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards/files
