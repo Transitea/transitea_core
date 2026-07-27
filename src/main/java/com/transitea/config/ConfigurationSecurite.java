@@ -72,7 +72,10 @@ public class ConfigurationSecurite {
                         .requestMatchers(HttpMethod.GET, "/v1/tracking/**").permitAll()
                         // Public : necessaire pour peupler le choix d'agence sur la page d'inscription
                         .requestMatchers(HttpMethod.GET, "/v1/agences").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
+                        // /actuator/prometheus n'est pas expose publiquement via le proxy nginx
+                        // (seul /api/ l'est) - accessible uniquement depuis le reseau Docker interne,
+                        // scrape par le conteneur Prometheus sans authentification.
+                        .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
