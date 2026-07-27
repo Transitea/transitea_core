@@ -1,0 +1,53 @@
+# Stack de supervision (Prometheus + Grafana), a deployer comme ressource
+# Dokploy separee de type "Compose" - le backend et la base de donnees sont
+# des Applications/ressources Dokploy independantes, pas orchestrees par ce
+# fichier. Prometheus scrape le backend via son domaine public
+# (cf. monitoring/prometheus/prometheus.dokploy.yml) ; Grafana lit Postgres
+# en direct s'il est joignable sur le meme reseau Docker (sinon le
+# datasource "PostgreSQL Transitea" restera simplement en erreur, sans
+# bloquer le reste).
+#
+# Usage local :
+#   docker compose -f docker-compose.monitoring.yml up -d
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: transitea-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.dokploy.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: transitea-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Identifiants de la base Postgres dev geree separement par Dokploy
+      # (ressource "transitea-bdd-dev-kojwol") - a fournir en variables
+      # d'environnement sur la ressource Dokploy de ce compose.
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards/files
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

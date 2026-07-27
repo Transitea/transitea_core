@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Config specifique au deploiement Dokploy : le backend est une Application
+# isolee (pas dans le meme reseau Docker que ce stack monitoring), donc le
+# scrape se fait via son domaine public plutot que via un nom de service
+# interne. /actuator/prometheus est permitAll cote Spring Security mais
+# n'est reference nulle part publiquement (aucun lien, non expose par le
+# proxy frontend) - accessible seulement si on connait l'URL exacte.
+scrape_configs:
+  - job_name: transitea-app-dev
+    scheme: https
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["api-dev.transitea.fr"]
