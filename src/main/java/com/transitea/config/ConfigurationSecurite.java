@@ -5,6 +5,7 @@ import com.transitea.security.FiltreLimitationDebit;
 import com.transitea.security.GestionnaireAccesRefuse;
 import com.transitea.security.PointEntreeNonAutorise;
 import com.transitea.security.ServiceDetailsUtilisateur;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,6 +26,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -37,6 +39,9 @@ public class ConfigurationSecurite {
     private final FiltreLimitationDebit filtreLimitationDebit;
     private final PointEntreeNonAutorise pointEntreeNonAutorise;
     private final GestionnaireAccesRefuse gestionnaireAccesRefuse;
+
+    @Value("${application.cors.allowed-origins:http://localhost:5173,http://localhost:4173}")
+    private String origineAutorisees;
 
     public ConfigurationSecurite(
             ServiceDetailsUtilisateur serviceDetailsUtilisateur,
@@ -67,7 +72,10 @@ public class ConfigurationSecurite {
                         .requestMatchers(HttpMethod.GET, "/v1/tracking/**").permitAll()
                         // Public : necessaire pour peupler le choix d'agence sur la page d'inscription
                         .requestMatchers(HttpMethod.GET, "/v1/agences").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
+                        // /actuator/prometheus n'est pas expose publiquement via le proxy nginx
+                        // (seul /api/ l'est) - accessible uniquement depuis le reseau Docker interne,
+                        // scrape par le conteneur Prometheus sans authentification.
+                        .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
@@ -88,9 +96,10 @@ public class ConfigurationSecurite {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173", "http://localhost:4173",
-                "https://transitea.fr", "http://transitea.fr"));
+        config.setAllowedOrigins(Arrays.stream(origineAutorisees.split(","))
+                .map(String::trim)
+                .filter(origine -> !origine.isEmpty())
+                .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

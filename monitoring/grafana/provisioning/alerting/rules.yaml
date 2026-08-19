@@ -1,0 +1,144 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: transitea-alerts
+    folder: Transitea
+    interval: 1m
+    rules:
+
+      - uid: transitea-backend-down
+        title: "Backend Transitea injoignable"
+        condition: seuil
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus n'obtient plus de reponse du backend (scrape en echec) depuis 2 minutes."
+        data:
+          - refId: requete
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: up{job="transitea-app-dev"}
+              instant: true
+              range: false
+              refId: requete
+          - refId: seuil
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: requete
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+              refId: seuil
+
+      - uid: transitea-erreurs-5xx
+        title: "Taux d'erreurs HTTP 5xx eleve"
+        condition: seuil
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Plus de 0.5 requete/s en erreur 5xx en moyenne sur 5 minutes."
+        data:
+          - refId: requete
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: sum(rate(http_server_requests_seconds_count{status=~"5..", job="transitea-app-dev"}[5m]))
+              instant: true
+              range: false
+              refId: requete
+          - refId: seuil
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: requete
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.5]
+              refId: seuil
+
+      - uid: transitea-latence-tracking
+        title: "Latence elevee sur le suivi public"
+        condition: seuil
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "La latence p95 de /v1/tracking/{codeTracking} depasse 2 secondes depuis 5 minutes."
+        data:
+          - refId: requete
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{uri="/v1/tracking/{codeTracking}", job="transitea-app-dev"}[5m])) by (le))
+              instant: true
+              range: false
+              refId: requete
+          - refId: seuil
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: requete
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [2]
+              refId: seuil
+
+      - uid: transitea-memoire-jvm
+        title: "Memoire heap JVM proche de la limite"
+        condition: seuil
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Le heap JVM utilise depasse 90% du maximum configure depuis 5 minutes."
+        data:
+          - refId: requete
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: sum(jvm_memory_used_bytes{area="heap", job="transitea-app-dev"}) / sum(jvm_memory_max_bytes{area="heap", job="transitea-app-dev"})
+              instant: true
+              range: false
+              refId: requete
+          - refId: seuil
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: requete
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.9]
+              refId: seuil
