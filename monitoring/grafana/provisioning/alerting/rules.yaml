@@ -82,7 +82,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "La latence p95 de /v1/tracking/{codeTracking} depasse 2 secondes depuis 5 minutes."
+          summary: "La latence moyenne de /v1/tracking/{codeTracking} depasse 2 secondes depuis 5 minutes."
         data:
           - refId: requete
             relativeTimeRange:
@@ -91,7 +91,7 @@ groups:
             datasourceUid: prometheus
             model:
               editorMode: code
-              expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{uri="/v1/tracking/{codeTracking}", job="transitea-app-dev"}[5m])) by (le))
+              expr: sum(rate(http_server_requests_seconds_sum{uri="/v1/tracking/{codeTracking}", job="transitea-app-dev"}[5m])) / sum(rate(http_server_requests_seconds_count{uri="/v1/tracking/{codeTracking}", job="transitea-app-dev"}[5m]))
               instant: true
               range: false
               refId: requete
