@@ -8,7 +8,7 @@
   "version": 1,
   "refresh": "1m",
   "time": {
-    "from": "now-7d",
+    "from": "now-3h",
     "to": "now"
   },
   "panels": [
@@ -29,7 +29,16 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short" },
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "pointSize": 6,
+            "showPoints": "always",
+            "barWidthFactor": 0.6
+          }
+        },
         "overrides": []
       }
     },
@@ -69,7 +78,10 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "s" },
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "pointSize": 6, "showPoints": "always" }
+        },
         "overrides": []
       }
     },
@@ -88,7 +100,10 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "reqps" },
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "pointSize": 6, "showPoints": "always" }
+        },
         "overrides": []
       }
     }
