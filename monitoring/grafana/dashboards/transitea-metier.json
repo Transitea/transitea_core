@@ -1,0 +1,112 @@
+{
+  "id": null,
+  "uid": "transitea-metier",
+  "title": "Transitea - Metriques metier",
+  "tags": ["transitea"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Colis crees par jour",
+      "type": "timeseries",
+      "timeFrom": "7d",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres-transitea" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "postgres-transitea" },
+          "format": "time_series",
+          "editorMode": "code",
+          "rawSql": "SELECT date_trunc('day', date_creation) AS time, COUNT(*) AS \"Colis crees\" FROM colis WHERE $__timeFilter(date_creation) GROUP BY 1 ORDER BY 1",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "pointSize": 6,
+            "showPoints": "always",
+            "barWidthFactor": 0.6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Repartition des colis par statut",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres-transitea" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "postgres-transitea" },
+          "format": "table",
+          "editorMode": "code",
+          "rawSql": "SELECT statut_actuel AS \"Statut\", COUNT(*) AS \"Nombre\" FROM colis WHERE supprime = false GROUP BY statut_actuel ORDER BY 2 DESC",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Latence moyenne endpoint de suivi public",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(http_server_requests_seconds_sum{uri=\"/v1/tracking/{codeTracking}\"}[5m])) / sum(rate(http_server_requests_seconds_count{uri=\"/v1/tracking/{codeTracking}\"}[5m]))",
+          "legendFormat": "latence moyenne"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "pointSize": 6, "showPoints": "always" }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Taux d'erreurs HTTP 5xx par endpoint",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) by (uri) or vector(0)",
+          "legendFormat": "{{uri}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "pointSize": 6, "showPoints": "always" }
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

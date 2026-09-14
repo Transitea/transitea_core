@@ -87,15 +87,25 @@ application:
 
   base-url: ${APP_BASE_URL:http://localhost:8080}
 
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4173,https://transitea.fr,http://transitea.fr,https://dev.transitea.fr}
+
   whatsapp:
     token: ${WHATSAPP_TOKEN:}
     phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
     api-url: https://graph.facebook.com/v18.0
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
   health:
     mail:
       enabled: ${MAIL_HEALTH_ENABLED:false}
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 logging:
   level:

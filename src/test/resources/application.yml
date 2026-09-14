@@ -23,6 +23,9 @@ spring:
     auto-startup: false
 
 application:
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:4173
+
   jwt:
     secret-access: dGVzdC1zZWNyZXQtYWNjZXNzLWtleS1mb3ItdW5pdC10ZXN0cy1taW5pbXVtLTI1NmJpdHM=
     secret-refresh: dGVzdC1zZWNyZXQtcmVmcmVzaC1rZXktZm9yLXVuaXQtdGVzdHMtbWluaW11bS0yNTZiaXRz
