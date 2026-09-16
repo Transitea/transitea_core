@@ -15,8 +15,11 @@ class ValidateurTransitionStatutTest {
     @ParameterizedTest(name = "{0} -> {1} doit etre valide")
     @CsvSource({
         "ENREGISTRE, EN_TRANSIT",
+        "ENREGISTRE, EN_COURS_DE_LIVRAISON",
         "ENREGISTRE, REFUSE",
         "EN_TRANSIT, ARRIVE_AGENCE",
+        "EN_COURS_DE_LIVRAISON, RETIRE",
+        "EN_COURS_DE_LIVRAISON, REFUSE",
         "ARRIVE_AGENCE, RETIRE",
         "ARRIVE_AGENCE, REFUSE",
         "REFUSE, RETOUR_EXPEDITEUR"
@@ -31,6 +34,8 @@ class ValidateurTransitionStatutTest {
         "ENREGISTRE, RETIRE",
         "ENREGISTRE, ARRIVE_AGENCE",
         "EN_TRANSIT, ENREGISTRE",
+        "EN_TRANSIT, EN_COURS_DE_LIVRAISON",
+        "EN_COURS_DE_LIVRAISON, ARRIVE_AGENCE",
         "ARRIVE_AGENCE, ENREGISTRE",
         "RETIRE, ARRIVE_AGENCE",
         "RETOUR_EXPEDITEUR, ENREGISTRE"
@@ -58,5 +63,10 @@ class ValidateurTransitionStatutTest {
     @Test
     void doit_retourner_false_pour_statut_en_transit() {
         assertThat(ValidateurTransitionStatut.estStatutTerminal(StatutColis.EN_TRANSIT)).isFalse();
+    }
+
+    @Test
+    void doit_retourner_false_pour_statut_en_cours_de_livraison() {
+        assertThat(ValidateurTransitionStatut.estStatutTerminal(StatutColis.EN_COURS_DE_LIVRAISON)).isFalse();
     }
 }

@@ -11,5 +11,7 @@ public interface NotificationService {
 
     void notifierChangementStatut(Colis colis, StatutColis ancienStatut);
 
+    void notifierEnregistrement(Colis colis);
+
     ReponsePagee<NotificationReponse> lister(Utilisateur utilisateur, Pageable pageable);
 }

@@ -188,6 +188,7 @@ class ColisServiceImplTest {
         assertThat(resultat.codeTracking()).isEqualTo("TRA-2026-ABC123");
         verify(colisRepository).save(any(Colis.class));
         verify(miseAJourStatutRepository).save(any(MiseAJourStatut.class));
+        verify(notificationService).notifierEnregistrement(any(Colis.class));
     }
 
     @Test

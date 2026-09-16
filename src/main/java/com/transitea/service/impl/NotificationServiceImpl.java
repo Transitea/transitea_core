@@ -59,20 +59,35 @@ public class NotificationServiceImpl implements NotificationService {
         this.qrCodeService = qrCodeService;
     }
 
+    /**
+     * L'expediteur est tenu informe a chaque etape (y compris EN_TRANSIT), le
+     * destinataire uniquement a partir du moment ou le colis le concerne
+     * directement (arrivee en agence, livraison, retrait, refus...) : pas de
+     * notification destinataire sur le statut interne EN_TRANSIT.
+     */
     @Override
     @Async
     public void notifierChangementStatut(Colis colis, StatutColis ancienStatut) {
+        notifierExpediteur(colis, ancienStatut);
+
         if (colis.getStatutActuel() == StatutColis.EN_TRANSIT) {
-            journal.debug("Pas de notification pour le statut interne EN_TRANSIT (colis {})",
+            journal.debug("Pas de notification destinataire pour le statut interne EN_TRANSIT (colis {})",
                     colis.getCodeTracking());
             return;
         }
 
         notifierDestinataire(colis, ancienStatut);
+    }
 
-        if (colis.getStatutActuel() == StatutColis.RETIRE) {
-            notifierExpediteur(colis);
-        }
+    /**
+     * Confirmation d'enregistrement envoyee a l'expediteur au moment de la
+     * creation du colis. Le destinataire n'est notifie qu'a partir de
+     * l'arrivee en agence (ou en cours de livraison), via notifierChangementStatut.
+     */
+    @Override
+    @Async
+    public void notifierEnregistrement(Colis colis) {
+        notifierExpediteur(colis, null);
     }
 
     private void notifierDestinataire(Colis colis, StatutColis ancienStatut) {
@@ -90,20 +105,24 @@ public class NotificationServiceImpl implements NotificationService {
                 colis.getDestinataireEmail(),
                 construireSujet(colis),
                 construireMessage(colis, ancienStatut),
-                construireCorpsHtml(colis, ancienStatut, qrCode != null),
+                construireCorpsHtml(colis, ancienStatut, qrCode != null, colis.getDestinataireNom()),
                 qrCode
         );
     }
 
-    private void notifierExpediteur(Colis colis) {
+    /**
+     * Notifie l'expediteur a chaque etape du colis (CDC : suivi de bout en
+     * bout). Pas de QR code ici : celui-ci ne sert qu'au retrait par le
+     * destinataire.
+     */
+    private void notifierExpediteur(Colis colis, StatutColis ancienStatut) {
         envoyerNotification(
                 colis,
                 colis.getExpediteurTelephone(),
                 colis.getExpediteurEmail(),
-                "Votre colis " + colis.getCodeTracking() + " a ete retire",
-                "Votre colis " + colis.getCodeTracking() + " a ete retire par le destinataire.",
-                "<p>Bonjour,</p><p>Votre colis <strong>" + colis.getCodeTracking()
-                        + "</strong> a bien ete retire par le destinataire.</p>",
+                construireSujet(colis),
+                construireMessage(colis, ancienStatut),
+                construireCorpsHtml(colis, ancienStatut, false, colis.getExpediteurNom()),
                 null
         );
     }
@@ -226,7 +245,7 @@ public class NotificationServiceImpl implements NotificationService {
                 colis.getStatutActuel().name());
     }
 
-    private String construireCorpsHtml(Colis colis, StatutColis ancienStatut, boolean avecQrCode) {
+    private String construireCorpsHtml(Colis colis, StatutColis ancienStatut, boolean avecQrCode, String nomDestinataireEmail) {
         // /suivi/{code} : page de suivi publique du frontend (CDC 8.3), pas l'API backend.
         String lienTracking = baseUrl + "/suivi/" + colis.getCodeTracking();
         String ancienStatutLabel = ancienStatut != null
@@ -284,7 +303,7 @@ public class NotificationServiceImpl implements NotificationService {
                 </body>
                 </html>
                 """.formatted(
-                colis.getDestinataireNom(),
+                nomDestinataireEmail,
                 colis.getCodeTracking(),
                 ancienStatutLabel,
                 formaterStatut(colis.getStatutActuel()),
@@ -297,6 +316,7 @@ public class NotificationServiceImpl implements NotificationService {
         return switch (statut) {
             case ENREGISTRE -> "Enregistre";
             case EN_TRANSIT -> "En transit";
+            case EN_COURS_DE_LIVRAISON -> "En cours de livraison";
             case ARRIVE_AGENCE -> "Arrive a l'agence de retrait";
             case RETIRE -> "Retire";
             case REFUSE -> "Refuse";

@@ -247,14 +247,57 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    void doit_ignorer_statut_en_transit() {
+    void doit_ignorer_statut_en_transit_pour_le_destinataire() {
         colisAvecEmail.setStatutActuel(StatutColis.EN_TRANSIT);
 
         notificationService.notifierChangementStatut(colisAvecEmail, StatutColis.ENREGISTRE);
 
+        // colisAvecEmail n'a pas d'email expediteur : aucune notification, ni destinataire ni expediteur.
         verify(mailSender, never()).createMimeMessage();
         verify(whatsAppService, never()).envoyerMessage(anyString(), anyString());
         verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void doit_notifier_expediteur_meme_pendant_le_transit() {
+        colisAvecEmail.setExpediteurEmail("jean@example.com");
+        colisAvecEmail.setStatutActuel(StatutColis.EN_TRANSIT);
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        notificationService.notifierChangementStatut(colisAvecEmail, StatutColis.ENREGISTRE);
+
+        // Uniquement l'expediteur : le destinataire n'est pas notifie sur EN_TRANSIT.
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getDestinataire()).isEqualTo("jean@example.com");
+    }
+
+    @Test
+    void doit_notifier_expediteur_et_destinataire_a_chaque_etape_hors_transit() {
+        colisAvecEmail.setExpediteurEmail("jean@example.com");
+        colisAvecEmail.setStatutActuel(StatutColis.ARRIVE_AGENCE);
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        notificationService.notifierChangementStatut(colisAvecEmail, StatutColis.EN_TRANSIT);
+
+        verify(notificationRepository, org.mockito.Mockito.times(2)).save(any(Notification.class));
+    }
+
+    @Test
+    void doit_notifier_uniquement_lexpediteur_lors_de_lenregistrement() {
+        colisAvecEmail.setExpediteurEmail("jean@example.com");
+        colisAvecEmail.setStatutActuel(StatutColis.ENREGISTRE);
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        notificationService.notifierEnregistrement(colisAvecEmail);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getDestinataire()).isEqualTo("jean@example.com");
+        verify(qrCodeService, never()).generer(anyString(), anyString());
     }
 
     @Test

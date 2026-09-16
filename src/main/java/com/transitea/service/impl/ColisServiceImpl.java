@@ -106,6 +106,7 @@ public class ColisServiceImpl implements ColisService {
                 colisSauvegarde, null, StatutColis.ENREGISTRE, null, null, creePar);
 
         quotaService.enregistrerColis(agenceOrigine);
+        notificationService.notifierEnregistrement(colisSauvegarde);
 
         journal.info("Colis cree avec le code : {}", codeTracking);
         return colisMapper.versReponse(colisSauvegarde);
