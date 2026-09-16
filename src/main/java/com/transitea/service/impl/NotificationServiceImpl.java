@@ -274,7 +274,7 @@ public class NotificationServiceImpl implements NotificationService {
 
                   <div style="padding: 30px;">
                     <p>Bonjour <strong>%s</strong>,</p>
-                    <p>Votre colis a ete mis a jour.</p>
+                    <p>%s</p>
 
                     <div style="background-color: #f4f7ff; border-left: 4px solid #1a56db;
                                 padding: 15px; margin: 20px 0; border-radius: 4px;">
@@ -304,12 +304,26 @@ public class NotificationServiceImpl implements NotificationService {
                 </html>
                 """.formatted(
                 nomDestinataireEmail,
+                construireIntroduction(colis.getStatutActuel()),
                 colis.getCodeTracking(),
                 ancienStatutLabel,
                 formaterStatut(colis.getStatutActuel()),
                 blocQrCode,
                 lienTracking
         );
+    }
+
+    /** Phrase d'introduction adaptee a chaque etape du colis. */
+    private String construireIntroduction(StatutColis statut) {
+        return switch (statut) {
+            case ENREGISTRE -> "Votre colis a bien ete enregistre et pris en charge.";
+            case EN_TRANSIT -> "Votre colis est en transit vers son agence de retrait.";
+            case EN_COURS_DE_LIVRAISON -> "Votre colis est en cours de livraison a l'adresse du destinataire.";
+            case ARRIVE_AGENCE -> "Votre colis est arrive a l'agence de retrait.";
+            case RETIRE -> "Votre colis a ete retire par le destinataire.";
+            case REFUSE -> "Votre colis a ete refuse par le destinataire.";
+            case RETOUR_EXPEDITEUR -> "Votre colis est en retour vers l'agence d'origine.";
+        };
     }
 
     private String formaterStatut(StatutColis statut) {
