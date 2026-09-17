@@ -94,6 +94,14 @@ Ce document analyse les anomalies détectées au cours de la recette (voir `docs
 - **Correction :** ajout du défilement indépendant sur la zone de navigation du menu latéral.
 - **Vérification :** test manuel (redimensionnement de fenêtre).
 
+### BUG-13 — Ajout d'un statut colis rejeté en production par une contrainte SQL obsolète 🔴
+
+- **Anomalie observée :** apres deploiement du statut `EN_COURS_DE_LIVRAISON`, la transition echouait en production avec une erreur 500 generique, alors que le code (y compris un test d'integration avec vraie persistence Hibernate/H2) fonctionnait correctement.
+- **Analyse :** le schema de la base de production n'est pas gere par un outil de migration (Flyway/Liquibase). Lors d'un deploiement anterieur avec `ddl-auto=update`, Hibernate avait genere automatiquement une contrainte `CHECK` sur les colonnes `statut`/`statut_actuel` (`mise_a_jour_statut_statut_check`, etc.), figeant la liste des valeurs autorisees a ce moment-la. Le profil `prod` utilise desormais `ddl-auto=validate`, qui ne modifie jamais le schema : toute nouvelle valeur d'enum ajoutee en code continuera de violer cette contrainte tant qu'elle n'est pas mise a jour manuellement en base. Ce risque se reproduira a chaque futur ajout de statut tant qu'aucun outil de migration n'est en place.
+- **Correction immediate :** contraintes `CHECK` obsoletes supprimees manuellement en production (`ALTER TABLE ... DROP CONSTRAINT ...`) - la validation des statuts reste assuree cote application par `ValidateurTransitionStatut` et l'enum Java, donc leur suppression ne retire aucune garantie reelle.
+- **Limite connue et assumee :** en l'absence de Flyway/Liquibase, toute evolution future du schema en production doit etre verifiee manuellement de la meme facon. A envisager avant le prochain ajout de statut ou de colonne.
+- **Vérification :** test d'integration `ColisStatutIntegrationTest` (contexte Spring reel, H2) + verification manuelle en production apres correction du schema.
+
 ## Accessibilité (détectées lors de l'audit RGAA de la recette)
 
 Voir `docs/accessibilite-rgaa.md` pour le détail complet. Résumé des anomalies qualifiées et corrigées le même jour (2026-07-22) :
