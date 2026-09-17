@@ -188,6 +188,7 @@ class ColisServiceImplTest {
         assertThat(resultat.codeTracking()).isEqualTo("TRA-2026-ABC123");
         verify(colisRepository).save(any(Colis.class));
         verify(miseAJourStatutRepository).save(any(MiseAJourStatut.class));
+        verify(notificationService).notifierEnregistrement(any(Colis.class));
     }
 
     @Test
@@ -388,6 +389,23 @@ class ColisServiceImplTest {
         verify(miseAJourStatutRepository).save(captor.capture());
         assertThat(captor.getValue().getStatut()).isEqualTo(StatutColis.EN_TRANSIT);
         assertThat(captor.getValue().getAncienStatut()).isEqualTo(StatutColis.ENREGISTRE);
+    }
+
+    @Test
+    void doit_mettre_a_jour_statut_vers_en_cours_de_livraison_quand_pas_de_transit() {
+        MiseAJourStatutRequete requete = new MiseAJourStatutRequete(
+                StatutColis.EN_COURS_DE_LIVRAISON, "Kinshasa", "Livraison directe, sans transit");
+        when(colisRepository.findById(10L)).thenReturn(Optional.of(colis));
+        when(colisRepository.save(any(Colis.class))).thenReturn(colis);
+        when(colisMapper.versReponse(any(Colis.class))).thenReturn(colisReponse);
+
+        colisService.mettreAJourStatut(10L, requete, agent);
+
+        ArgumentCaptor<MiseAJourStatut> captor = ArgumentCaptor.forClass(MiseAJourStatut.class);
+        verify(miseAJourStatutRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatut()).isEqualTo(StatutColis.EN_COURS_DE_LIVRAISON);
+        assertThat(captor.getValue().getAncienStatut()).isEqualTo(StatutColis.ENREGISTRE);
+        verify(notificationService).notifierChangementStatut(any(Colis.class), eq(StatutColis.ENREGISTRE));
     }
 
     @Test

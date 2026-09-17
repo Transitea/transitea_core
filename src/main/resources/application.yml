@@ -85,7 +85,10 @@ application:
     cache-repertoire: ${QRCODE_CACHE_PATH:./cache/qrcodes}
     cache-duree-jours: 90
 
-  base-url: ${APP_BASE_URL:http://localhost:8080}
+  # Domaine du FRONTEND (page /suivi/{code}), pas celui de cette API : encode
+  # les QR codes et les liens "Suivre mon colis" des emails. Doit etre defini
+  # explicitement en production (cf. docs/manuel-deploiement.md, BUG-02).
+  base-url: ${APP_BASE_URL:http://localhost:5173}
 
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4173,https://transitea.fr,http://transitea.fr,https://dev.transitea.fr}

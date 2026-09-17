@@ -16,11 +16,15 @@ public final class ValidateurTransitionStatut {
     static {
         TRANSITIONS_AUTORISEES.put(
                 StatutColis.ENREGISTRE,
-                EnumSet.of(StatutColis.EN_TRANSIT, StatutColis.REFUSE)
+                EnumSet.of(StatutColis.EN_TRANSIT, StatutColis.EN_COURS_DE_LIVRAISON, StatutColis.REFUSE)
         );
         TRANSITIONS_AUTORISEES.put(
                 StatutColis.EN_TRANSIT,
                 EnumSet.of(StatutColis.ARRIVE_AGENCE)
+        );
+        TRANSITIONS_AUTORISEES.put(
+                StatutColis.EN_COURS_DE_LIVRAISON,
+                EnumSet.of(StatutColis.RETIRE, StatutColis.REFUSE)
         );
         TRANSITIONS_AUTORISEES.put(
                 StatutColis.ARRIVE_AGENCE,
